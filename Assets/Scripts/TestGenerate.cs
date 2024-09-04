@@ -10,6 +10,6 @@ public class TestGenerate : MonoBehaviour
     {
 
         float t_timer = Mathf.PingPong(Time.time / 2, 1.0f);
-        //m_renderer.sharedMaterial.SetFloat("_Progress", t_timer);
+        m_renderer.material.SetFloat("_Progress", t_timer);
     }
 }
