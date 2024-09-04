@@ -52,7 +52,7 @@ namespace SLC.SpaceHorror.Core
                 t_percent += Time.deltaTime * t_speed;
                 float t_smoothPercent = transitionCurve.Evaluate(t_percent);
 
-                m_renderer.sharedMaterial.SetFloat("_Progress", t_smoothPercent);
+                m_renderer.material.SetFloat("_Progress", t_smoothPercent);
 
                 yield return null;
             }
