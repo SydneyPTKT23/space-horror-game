@@ -36,8 +36,6 @@ namespace SLC.SpaceHorror.Core
         public float killHeight = -50.0f;
         public bool IsDead { get; private set; }
 
-        public SnapshotCamera ssc;
-
         private void Start()
         {
             m_characterController = GetComponent<CharacterController>();
@@ -56,11 +54,6 @@ namespace SLC.SpaceHorror.Core
             if (!IsDead && transform.position.y < killHeight)
             {
                 m_health.Kill();
-            }
-
-            if (Input.GetKeyDown(KeyCode.E))
-            {
-                ssc.CallTakeSnapshot();
             }
 
             if (m_characterController)
