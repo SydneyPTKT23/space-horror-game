@@ -1,34 +1,34 @@
+using SLC.SpaceHorror.Input;
 using UnityEngine;
 
 namespace SLC.SpaceHorror.Core
 {
     public class CameraController : MonoBehaviour
     {
-        private int sensitivity = 10;
-
-        private float m_mouseX;
-        private float m_mouseY;
+        [SerializeField] private int sensitivity = 10;
 
         private float m_desiredPitch;
 
-        public Transform player;
+        private InputHandler m_inputHandler;
         public Camera m_cam;
 
         private void Awake()
         {
+            m_inputHandler = GetComponent<InputHandler>();
+
             ChangeCursorState();
         }
 
         private void Update()
         {
-            m_mouseX = Input.GetAxis("Mouse X") * sensitivity;
-            m_mouseY = Input.GetAxis("Mouse Y") * sensitivity;
+            float t_mouseX = m_inputHandler.MouseDelta.x * sensitivity * Time.deltaTime;
+            float t_mouseY = m_inputHandler.MouseDelta.y * sensitivity * Time.deltaTime;
 
-            m_desiredPitch -= m_mouseY;
-            m_desiredPitch = Mathf.Clamp(m_desiredPitch, -90, 90);
+            m_desiredPitch -= t_mouseY;
+            m_desiredPitch = Mathf.Clamp(m_desiredPitch, -90.0f, 90.0f);
 
             m_cam.transform.localRotation = Quaternion.Euler(m_desiredPitch, 0f, 0f);
-            player.Rotate(Vector3.up * m_mouseX);
+            transform.Rotate(Vector3.up * t_mouseX);
         }
 
         private void ChangeCursorState()

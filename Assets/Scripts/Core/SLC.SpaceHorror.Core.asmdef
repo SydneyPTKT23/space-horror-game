@@ -1,0 +1,17 @@
+{
+    "name": "SLC.SpaceHorror.Core",
+    "rootNamespace": "SLC.SpaceHorror.Core",
+    "references": [
+        "GUID:9db68013ca7421342a3497da4ce2517b",
+        "GUID:75469ad4d38634e559750d17036d5f7c"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

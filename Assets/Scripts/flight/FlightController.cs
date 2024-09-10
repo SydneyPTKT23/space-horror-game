@@ -13,6 +13,6 @@ public class FlightController : MonoBehaviour
 
         Vector3 move = transform.right * x + transform.forward * z;
 
-        transform.Translate(move * speed * Time.deltaTime, Space.World);
+        transform.Translate(speed * Time.deltaTime * move, Space.World);
     }
 }

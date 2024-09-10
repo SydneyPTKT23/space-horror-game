@@ -1,6 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
+using SLC.SpaceHorror.Input;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace SLC.SpaceHorror.Core
 {
@@ -117,10 +117,10 @@ namespace SLC.SpaceHorror.Core
 
         private void HandleBounce()
         {
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (m_inputHandler.m_controls.PlayerMovement.Jump.WasPerformedThisFrame())
             {
+                Debug.Log("test");
                 m_finalMoveVector.y = jumpForce;
-
                 m_isGrounded = false;
             }
         }

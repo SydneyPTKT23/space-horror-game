@@ -1,3 +1,4 @@
+using SLC.SpaceHorror.Input;
 using UnityEngine;
 
 namespace SLC.SpaceHorror.Core
@@ -14,21 +15,22 @@ namespace SLC.SpaceHorror.Core
         private InputHandler m_inputHandler;
         private Camera m_camera;
 
-        private bool isInteracting;
-        private float holdingTimer = 0.0f;
-
         public InteractableBase m_interactable;
 
         private void Awake()
         {
-            m_camera = GetComponentInChildren<Camera>();
             m_inputHandler = GetComponent<InputHandler>();
+            m_camera = GetComponentInChildren<Camera>();            
+        }
+
+        private void Start()
+        {
+            m_inputHandler.OnInteractClicked += OnInteract;
         }
 
         private void Update()
         {
             CheckForInteractables();
-            CheckForInput();
         }
 
         private void CheckForInteractables()
@@ -59,51 +61,16 @@ namespace SLC.SpaceHorror.Core
             ResetInteractable();
         }
 
-        private void CheckForInput()
+        private void OnInteract()
         {
-            if (m_interactable == null)
+            if (m_interactable == null || !m_interactable.IsInteractable)
                 return;
 
-            if (m_inputHandler.InteractClicked)
-            {
-                isInteracting = true;
-                holdingTimer = 0.0f;
-            }
-
-            if (m_inputHandler.InteractedReleased)
-            {
-                isInteracting = false;
-                holdingTimer = 0.0f;
-            }
-
-            if (isInteracting)
-            {
-                if (!m_interactable.IsInteractable)
-                    return;
-
-                if (m_interactable.HoldToInteract)
-                {
-                    holdingTimer += Time.deltaTime;
-
-                    float t_heldPercent = holdingTimer / m_interactable.HoldDuration;
-
-                    if (t_heldPercent > 1.0f)
-                    {
-                        Interact();
-                        isInteracting = false;
-                    }
-                }
-                else
-                {
-                    Interact();
-                    isInteracting = false;
-                }
-            }
+            Interact();
         }
 
         private void ResetInteractable()
         {
-            holdingTimer = 0.0f;
             m_interactable = null;
         }
     }
