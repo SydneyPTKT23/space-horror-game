@@ -1,7 +1,5 @@
 using SLC.SpaceHorror.Input;
-using System.Collections;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace SLC.SpaceHorror.Core
 {
@@ -22,18 +20,28 @@ namespace SLC.SpaceHorror.Core
         [SerializeField] private float rayLength = 0.1f;
         [SerializeField] private float raySphereRadius = 0.1f;
 
+        [Header("Smoothing")]
+        [SerializeField] private float smoothInput = 5.0f;
+        [SerializeField] private float smoothSpeed = 5.0f;
+
         private CharacterController m_characterController;
         private InputHandler m_inputHandler;
         private Health m_health;
-        private CameraController m_cameraController;
 
         private RaycastHit m_hitInfo;
 
         [Space, Header("DEBUG")]
         [SerializeField] private Vector2 m_inputVector;
+        [SerializeField] private Vector2 m_smoothInputVector;
+        
+        [Space]
+        [SerializeField] private Vector3 m_finalMoveDirection;
         [SerializeField] private Vector3 m_finalMoveVector;
+
         [Space]
         [SerializeField] private float m_currentSpeed;
+        [SerializeField] private float m_smoothCurrentSpeed;
+        
         [Space]
         [SerializeField] private float m_finalRayLength;
         [SerializeField] private bool m_isGrounded;
@@ -46,8 +54,6 @@ namespace SLC.SpaceHorror.Core
         private void Start()
         {
             m_characterController = GetComponent<CharacterController>();
-            m_cameraController = GetComponent<CameraController>();
-            //m_camTransform = m_cameraController.transform;
             m_inputHandler = GetComponent<InputHandler>();
 
             m_inputHandler.OnJumpClicked += HandleJump;
@@ -69,13 +75,20 @@ namespace SLC.SpaceHorror.Core
 
             if (m_characterController)
             {
+                // Check if the player is grounded.
                 CheckIfGrounded();
 
-                HandleMovement();
+                // Make controls smoother.
+                SmoothInput();
+                SmoothSpeed();
 
-                CalculateMovementSpeed();
+                // Calculate player movement.
+                CalculateDirection();
+                CalculateSpeed();
+                CalculateFinalMovement();
+
+                // Move the player.
                 ApplyGravity();
-
                 ApplyMovement();
             }
         }
@@ -83,6 +96,18 @@ namespace SLC.SpaceHorror.Core
         private void OnDie()
         {
             IsDead = true;
+        }
+
+        private void SmoothInput()
+        {
+            m_inputVector = m_inputHandler.InputVector;
+            m_smoothInputVector = Vector2.Lerp(m_smoothInputVector, m_inputVector, Time.deltaTime * smoothInput);
+            Debug.DrawRay(transform.position, m_smoothInputVector, Color.yellow);
+        }
+
+        private void SmoothSpeed()
+        {
+            m_smoothCurrentSpeed = Mathf.Lerp(m_smoothCurrentSpeed, m_currentSpeed, Time.deltaTime * smoothSpeed);
         }
 
         private void CheckIfGrounded()
@@ -103,20 +128,15 @@ namespace SLC.SpaceHorror.Core
             return t_hitRoof;
         }
 
-        private void HandleMovement()
+        private void CalculateDirection()
         {
-            m_inputVector = m_inputHandler.InputVector.normalized;
+            Vector3 t_verticalMove = transform.forward * m_smoothInputVector.y;
+            Vector3 t_horizontalMove = transform.right * m_smoothInputVector.x;
 
-            Vector3 t_desiredDirection = transform.forward * m_inputVector.y + transform.right * m_inputVector.x;
+            Vector3 t_desiredDirection = t_verticalMove + t_horizontalMove;
             Vector3 t_flatDirection = FlattenVectorOnSlopes(t_desiredDirection);
 
-            Vector3 t_finalVector = m_currentSpeed * t_flatDirection;
-
-            m_finalMoveVector.x = t_finalVector.x;
-            m_finalMoveVector.z = t_finalVector.z;
-
-            if (m_characterController.isGrounded)
-                m_finalMoveVector.y += t_finalVector.y;
+            m_finalMoveDirection = t_flatDirection;
         }
 
         private Vector3 FlattenVectorOnSlopes(Vector3 t_flattenedVector)
@@ -128,7 +148,18 @@ namespace SLC.SpaceHorror.Core
             return t_flattenedVector;
         }
 
-        private void CalculateMovementSpeed()
+        private void CalculateFinalMovement()
+        {
+            Vector3 t_finalVector = m_smoothCurrentSpeed * m_finalMoveDirection;
+
+            m_finalMoveVector.x = t_finalVector.x;
+            m_finalMoveVector.z = t_finalVector.z;
+
+            if (m_characterController.isGrounded)
+                m_finalMoveVector.y += t_finalVector.y;
+        }
+
+        private void CalculateSpeed()
         {
             m_currentSpeed = !m_inputHandler.InputDetected ? 0.0f : moveSpeed;
             m_currentSpeed = m_inputHandler.InputVector.y == -1 ? m_currentSpeed * moveBackwardsPercent : m_currentSpeed;
@@ -161,6 +192,7 @@ namespace SLC.SpaceHorror.Core
             }
             else
             {
+                // If collided with a ceiling during air time, stop the player from sticking to the roof.
                 if (CheckIfRoof())
                     m_finalMoveVector.y = -stickToGroundForce;
 

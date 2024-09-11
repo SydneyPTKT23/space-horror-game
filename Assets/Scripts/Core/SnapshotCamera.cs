@@ -33,7 +33,7 @@ namespace SLC.SpaceHorror.Core
         {
             if (m_camera.gameObject.activeInHierarchy)
             {
-                Texture2D t_imageTexture = new Texture2D(width, height, TextureFormat.ARGB32, false);
+                Texture2D t_imageTexture = new(width, height, TextureFormat.ARGB32, false);
                 m_camera.Render();
                 RenderTexture.active = m_camera.targetTexture;
                 t_imageTexture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
