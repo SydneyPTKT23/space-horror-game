@@ -212,18 +212,47 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 7
   jumpForce: 10
+  moveBackwardsPercent: 0.5
+  moveSidePercent: 0.75
+  crouchPercent: 0.5
+  crouchDuration: 1
+  crouchCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   gravityMultiplier: 2.5
   stickToGroundForce: 5
   groundLayer:
     serializedVersion: 2
     m_Bits: 4294967295
-  rayLength: 0.1
-  raySphereRadius: 0.1
+  rayLength: 1
+  raySphereRadius: 0.2
   m_inputVector: {x: 0, y: 0}
   m_finalMoveVector: {x: 0, y: 0, z: 0}
   m_currentSpeed: 0
   m_finalRayLength: 0
   m_isGrounded: 0
+  jump: 0
   killHeight: -50
 --- !u!114 &162968775
 MonoBehaviour:
@@ -237,7 +266,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 50a45ae6497a0b643839b13a9cefd326, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  OnJumpClicked: 0
 --- !u!4 &162968776
 Transform:
   m_ObjectHideFlags: 0

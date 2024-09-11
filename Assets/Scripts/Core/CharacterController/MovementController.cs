@@ -1,16 +1,26 @@
 using SLC.SpaceHorror.Input;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace SLC.SpaceHorror.Core
 {
+    [RequireComponent(typeof(CharacterController))]
     public class MovementController : MonoBehaviour
     {
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 7.0f;
         [SerializeField] private float jumpForce = 10.0f;
+        [Range(0.0f, 1.0f), SerializeField] private float moveBackwardsPercent = 0.5f;
+        [Range(0.0f, 1.0f), SerializeField] private float moveSidePercent = 0.75f;
 
-        [Space, Header("Ground Settings")]
+
+        [Header("Crouch Settings")]
+        [SerializeField] private float crouchPercent = 0.8f;
+        [SerializeField] private float crouchDuration = 1.0f;
+        [SerializeField] private AnimationCurve crouchCurve = AnimationCurve.EaseInOut(0.0f, 0.0f, 1.0f, 1.0f);
+
+        [Header("Ground Settings")]
         [SerializeField] private float gravityMultiplier = 2.5f;
         [SerializeField] private float stickToGroundForce = 5.0f;
         [Space]
@@ -21,6 +31,7 @@ namespace SLC.SpaceHorror.Core
         private CharacterController m_characterController;
         private InputHandler m_inputHandler;
         private Health m_health;
+        private CameraController m_cameraController;
 
         private RaycastHit m_hitInfo;
 
@@ -33,13 +44,19 @@ namespace SLC.SpaceHorror.Core
         [SerializeField] private float m_finalRayLength;
         [SerializeField] private bool m_isGrounded;
 
+        public bool jump;
+
         public float killHeight = -50.0f;
         public bool IsDead { get; private set; }
 
         private void Start()
         {
             m_characterController = GetComponent<CharacterController>();
+            m_cameraController = GetComponent<CameraController>();
+            //m_camTransform = m_cameraController.transform;
             m_inputHandler = GetComponent<InputHandler>();
+
+            m_inputHandler.OnJumpClicked += HandleJump;
 
             m_health = GetComponent<Health>();
             m_health.OnDie += OnDie;
@@ -63,9 +80,9 @@ namespace SLC.SpaceHorror.Core
                 HandleMovement();
 
                 CalculateMovementSpeed();
-                AddDownForce();
+                ApplyGravity();
 
-                AddMovement();
+                ApplyMovement();
             }
         }
 
@@ -103,7 +120,7 @@ namespace SLC.SpaceHorror.Core
 
         private Vector3 FlattenVectorOnSlopes(Vector3 t_flattenedVector)
         {
-            // Correct movement on slopes to keep speed consistent.
+            // Adjust movement on slopes to keep speed consistent.
             if (m_isGrounded)
                 t_flattenedVector = Vector3.ProjectOnPlane(t_flattenedVector, m_hitInfo.normal);
 
@@ -113,25 +130,33 @@ namespace SLC.SpaceHorror.Core
         private void CalculateMovementSpeed()
         {
             m_currentSpeed = !m_inputHandler.InputDetected ? 0.0f : moveSpeed;
+            m_currentSpeed = m_inputHandler.InputVector.y == -1 ? m_currentSpeed * moveBackwardsPercent : m_currentSpeed;
+            m_currentSpeed = m_inputHandler.InputVector.x != 0 && m_inputVector.y == 0 ? m_currentSpeed * moveSidePercent : m_currentSpeed;
         }
 
-        private void HandleBounce()
+        private void HandleJump()
         {
-            if (m_inputHandler.m_controls.PlayerMovement.Jump.WasPerformedThisFrame())
+            if (m_isGrounded && jump == false)
             {
-                Debug.Log("test");
-                m_finalMoveVector.y = jumpForce;
-                m_isGrounded = false;
+                jump = true;
+
             }
         }
 
-        private void AddDownForce()
+        private void ApplyGravity()
         {
             // If grounded, add a little bit of extra downward force just in case.
             if (m_characterController.isGrounded)
             {
                 m_finalMoveVector.y = -stickToGroundForce;
-                HandleBounce();
+
+                if (jump)
+                {
+                    m_finalMoveVector.y = jumpForce;
+
+                    jump = false;
+                    m_isGrounded = false;
+                }
             }
             else
             {
@@ -139,7 +164,7 @@ namespace SLC.SpaceHorror.Core
             }
         }
 
-        private void AddMovement()
+        private void ApplyMovement()
         {
             m_characterController.Move(m_finalMoveVector * Time.deltaTime);
         }

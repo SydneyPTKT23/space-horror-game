@@ -4,22 +4,23 @@ using UnityEngine.InputSystem;
 
 namespace SLC.SpaceHorror.Input
 {
-    public class InputHandler : MonoBehaviour, Controls.IPlayerMovementActions
+    public class InputHandler : MonoBehaviour, PlayerControls.IPlayerMovementActions
     {
+        // Mouse
         private Vector2 m_mouseDelta;
-        private Vector2 m_inputVector;
-
-
         public Vector2 MouseDelta => m_mouseDelta;
+
+        // Keyboard
+        private Vector2 m_inputVector;
         public Vector2 InputVector => m_inputVector;
         public bool InputDetected => InputVector != Vector2.zero;
 
-
-        public bool OnJumpClicked;
+        public Action OnJumpClicked;
         public Action OnInteractClicked;
 
+        public Action OnCrouchClicked;
 
-        public Controls m_controls;
+        public PlayerControls m_controls;
 
         #region Built-In Functions
         private void OnEnable()
@@ -27,7 +28,7 @@ namespace SLC.SpaceHorror.Input
             if (m_controls != null)
                 return;
 
-            m_controls = new Controls();
+            m_controls = new PlayerControls();
             m_controls.PlayerMovement.SetCallbacks(this);
             m_controls.PlayerMovement.Enable();
         }
@@ -50,10 +51,18 @@ namespace SLC.SpaceHorror.Input
 
         public void OnJump(InputAction.CallbackContext t_context)
         {
-            if (t_context.ReadValueAsButton())
-            {
-                OnJumpClicked = true;
-            }
+            if (!t_context.performed)
+                return;
+
+            OnJumpClicked?.Invoke();
+        }
+
+        public void OnCrouch(InputAction.CallbackContext t_context)
+        {
+            if (!t_context.performed)
+                return;
+
+            OnCrouchClicked?.Invoke();
         }
 
         public void OnInteract(InputAction.CallbackContext t_context)

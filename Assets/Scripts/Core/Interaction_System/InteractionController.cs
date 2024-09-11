@@ -25,7 +25,7 @@ namespace SLC.SpaceHorror.Core
 
         private void Start()
         {
-            m_inputHandler.OnInteractClicked += OnInteract;
+            m_inputHandler.OnInteractClicked += CheckForInput;
         }
 
         private void Update()
@@ -40,9 +40,7 @@ namespace SLC.SpaceHorror.Core
 
             if (t_hitSomething)
             {
-                InteractableBase t_interactable = t_hitInfo.transform.GetComponent<InteractableBase>();
-
-                if (t_interactable != null)
+                if (t_hitInfo.transform.TryGetComponent<InteractableBase>(out var t_interactable))
                 {
                     m_interactable = t_interactable;
                 }
@@ -61,9 +59,9 @@ namespace SLC.SpaceHorror.Core
             ResetInteractable();
         }
 
-        private void OnInteract()
+        private void CheckForInput()
         {
-            if (m_interactable == null || !m_interactable.IsInteractable)
+            if (m_interactable == null)
                 return;
 
             Interact();
