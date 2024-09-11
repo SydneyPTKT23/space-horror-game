@@ -14,12 +14,6 @@ namespace SLC.SpaceHorror.Core
         [Range(0.0f, 1.0f), SerializeField] private float moveBackwardsPercent = 0.5f;
         [Range(0.0f, 1.0f), SerializeField] private float moveSidePercent = 0.75f;
 
-
-        [Header("Crouch Settings")]
-        [SerializeField] private float crouchPercent = 0.8f;
-        [SerializeField] private float crouchDuration = 1.0f;
-        [SerializeField] private AnimationCurve crouchCurve = AnimationCurve.EaseInOut(0.0f, 0.0f, 1.0f, 1.0f);
-
         [Header("Ground Settings")]
         [SerializeField] private float gravityMultiplier = 2.5f;
         [SerializeField] private float stickToGroundForce = 5.0f;
@@ -102,6 +96,13 @@ namespace SLC.SpaceHorror.Core
             m_isGrounded = t_hitGround;
         }
 
+        private bool CheckIfRoof()
+        {
+            Vector3 t_origin = transform.position;
+            bool t_hitRoof = Physics.SphereCast(t_origin, raySphereRadius, Vector3.up, out _, rayLength, groundLayer);
+            return t_hitRoof;
+        }
+
         private void HandleMovement()
         {
             m_inputVector = m_inputHandler.InputVector.normalized;
@@ -160,6 +161,9 @@ namespace SLC.SpaceHorror.Core
             }
             else
             {
+                if (CheckIfRoof())
+                    m_finalMoveVector.y = -stickToGroundForce;
+
                 m_finalMoveVector += gravityMultiplier * Time.deltaTime * Physics.gravity;
             }
         }
