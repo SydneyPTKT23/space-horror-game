@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace SLC.SpaceHorror.Core
 {
@@ -11,10 +12,9 @@ namespace SLC.SpaceHorror.Core
         [SerializeField] private AnimationCurve transitionCurve = AnimationCurve.EaseInOut(0.0f, 0.0f, 1.0f, 1.0f);
 
         public SnapshotCamera m_camera;
-        public Renderer m_renderer;
+        public RawImage m_image;
 
         private IEnumerator m_loading;
-
 
         private bool m_isLoading;
 
@@ -52,7 +52,7 @@ namespace SLC.SpaceHorror.Core
                 t_percent += Time.deltaTime * t_speed;
                 float t_smoothPercent = transitionCurve.Evaluate(t_percent);
 
-                m_renderer.material.SetFloat("_Progress", t_smoothPercent);
+                m_image.material.SetFloat("_Progress", t_smoothPercent);
 
                 yield return null;
             }
