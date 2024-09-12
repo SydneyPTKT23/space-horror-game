@@ -42,14 +42,12 @@ namespace SLC.SpaceHorror.Core
 
         public void Reset()
         {
-            sensitivity = 40;
-            amount = 64;
-            speed = 5;
-            radius = 20;
+            //sensitivity = 40;
+            //amount = 64;
+            //speed = 5;
+            //radius = 20;
         }
     }
-
-
 
     [System.Serializable]
     public struct PrefabSettings

@@ -2511,15 +2511,15 @@ RectTransform:
   m_GameObject: {fileID: 1626404039}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1058584443}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchoredPosition: {x: -402, y: -474}
+  m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!82 &1626404041
 AudioSource:
@@ -2640,6 +2640,10 @@ MonoBehaviour:
       sampleRate: 2048
     Prefabs:
       BoxPrefab: {fileID: 4720115387547415902, guid: 2de87a46819f9e5489537f7cbcb605ef, type: 3}
+  spectrum: []
+  pillars: []
+  folder: {fileID: 0}
+  isBuilding: 0
 --- !u!1 &1728697429
 GameObject:
   m_ObjectHideFlags: 0

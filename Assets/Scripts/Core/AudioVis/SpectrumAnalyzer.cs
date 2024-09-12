@@ -7,10 +7,10 @@ namespace SLC.SpaceHorror.Core
     {
         public AnalyzerSettings settings;
 
-        private float[] spectrum;
-        private List<GameObject> pillars;
-        private GameObject folder;
-        private bool isBuilding;
+        [SerializeField] private float[] spectrum;
+        [SerializeField] private List<GameObject> pillars;
+        [SerializeField] private GameObject folder;
+        [SerializeField] private bool isBuilding;
 
         private void Start()
         {
@@ -20,10 +20,7 @@ namespace SLC.SpaceHorror.Core
 
         private void CreatePillars()
         {
-
-            GameObject t_prefab = settings.Prefabs.BoxPrefab;
-
-            pillars = MathB.ShapesOfGameObjects(t_prefab, settings.pillar.radius, (int)settings.pillar.amount);
+            pillars = MathB.ShapesOfGameObjects(settings.Prefabs.BoxPrefab, settings.pillar.radius, (int)settings.pillar.amount, transform);
 
             folder = new GameObject("Pillars-" + pillars.Count);
             folder.transform.SetParent(transform);
@@ -38,7 +35,7 @@ namespace SLC.SpaceHorror.Core
 
         private void Update()
         {
-            spectrum = AudioListener.GetSpectrumData((int)settings.spectrum.sampleRate, 0, FFTWindow.Blackman);
+            spectrum = AudioListener.GetSpectrumData((int)settings.spectrum.sampleRate, 0, settings.spectrum.FffWindowType);
 
             for (int i = 0; i < pillars.Count; i++)
             {
@@ -46,7 +43,6 @@ namespace SLC.SpaceHorror.Core
 
                 Vector3 t_previousScale = pillars[i].transform.localScale;
                 t_previousScale.y = Mathf.Lerp(t_previousScale.y, level, settings.pillar.speed * Time.deltaTime);
-                //Add delta time please.
                 pillars[i].transform.localScale = t_previousScale;
 
                 //Move pillars up by scale / 2.
