@@ -16,7 +16,6 @@ namespace SLC.SpaceHorror.Core
     {
         public PillarSettings pillar;
         public SpectrumSettings spectrum;
-        public PrefabSettings Prefabs;
     }
 
     [System.Serializable]
@@ -35,23 +34,13 @@ namespace SLC.SpaceHorror.Core
     [System.Serializable]
     public struct PillarSettings
     {
-        public float radius;
-        public float amount;
         public float sensitivity;
         public float speed;
 
         public void Reset()
         {
             //sensitivity = 40;
-            //amount = 64;
             //speed = 5;
-            //radius = 20;
         }
-    }
-
-    [System.Serializable]
-    public struct PrefabSettings
-    {
-        public GameObject BoxPrefab;
     }
 }

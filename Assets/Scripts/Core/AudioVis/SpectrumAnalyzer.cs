@@ -7,49 +7,51 @@ namespace SLC.SpaceHorror.Core
     {
         public AnalyzerSettings settings;
 
-        [SerializeField] private float[] spectrum;
-        [SerializeField] private List<GameObject> pillars;
-        [SerializeField] private GameObject folder;
-        [SerializeField] private bool isBuilding;
+        public Transform parent;
+        public List<AudioVisualizer> pillars;
+
+        public float minHeight = 15f;
+        public float maxHeight = 400f;
+
+        public Color m_color = Color.blue;
+
+        [Space(15)]
+        public AudioClip m_clip;
+        public bool loop = true;
+
+        private AudioSource m_audioSource;
+
+        private void OnValidate()
+        {
+            if (parent != null)
+                parent.GetComponentsInChildren(includeInactive: true, result: pillars);
+        }
 
         private void Start()
         {
-            isBuilding = true;
-            //CreatePillars();
-        }
+            if (!m_clip)
+                return;
 
-        private void CreatePillars()
-        {
-            pillars = MathB.ShapesOfGameObjects(settings.Prefabs.BoxPrefab, settings.pillar.radius, (int)settings.pillar.amount, transform);
-
-            folder = new GameObject("Pillars-" + pillars.Count);
-            folder.transform.SetParent(transform);
-
-            foreach (var pillar in pillars)
-            {
-                pillar.transform.SetParent(folder.transform);
-            }
-
-            isBuilding = false;
+            m_audioSource = GetComponent<AudioSource>();
+            m_audioSource.loop = loop;
+            m_audioSource.clip = m_clip;
+            m_audioSource.Play();
         }
 
         [System.Obsolete]
         private void Update()
         {
-            spectrum = AudioListener.GetSpectrumData((int)settings.spectrum.sampleRate, 0, settings.spectrum.FffWindowType);
+            float[] t_spectrumData = m_audioSource.GetSpectrumData((int)settings.spectrum.sampleRate, 0, settings.spectrum.FffWindowType);
 
             for (int i = 0; i < pillars.Count; i++)
             {
-                float level = spectrum[i] * settings.pillar.sensitivity * Time.deltaTime * 1000;
+                Vector2 t_desiredSize = pillars[i].GetComponent<RectTransform>().rect.size;
+                float t_soundLevel = minHeight + (t_spectrumData[i] * (maxHeight - minHeight) * settings.pillar.speed);
 
-                Vector3 t_previousScale = pillars[i].transform.localScale;
-                t_previousScale.y = Mathf.Lerp(t_previousScale.y, level, settings.pillar.speed * Time.deltaTime);
-                pillars[i].transform.localScale = t_previousScale;
+                t_desiredSize.y = Mathf.Clamp(Mathf.Lerp(t_desiredSize.y, t_soundLevel, settings.pillar.sensitivity * Time.deltaTime), minHeight, maxHeight);
 
-                //Move pillars up by scale / 2.
-                Vector3 t_posisiton = pillars[i].transform.position;
-                t_posisiton.y = t_previousScale.y * .5f;
-                pillars[i].transform.position = t_posisiton;
+                pillars[i].rect.sizeDelta = t_desiredSize;
+                pillars[i].image.color = m_color;
             }
         }
     }
