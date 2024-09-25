@@ -15,7 +15,7 @@ namespace SLC.SpaceHorror.Core
         private void Start()
         {
             isBuilding = true;
-            CreatePillars();
+            //CreatePillars();
         }
 
         private void CreatePillars()
@@ -33,6 +33,7 @@ namespace SLC.SpaceHorror.Core
             isBuilding = false;
         }
 
+        [System.Obsolete]
         private void Update()
         {
             spectrum = AudioListener.GetSpectrumData((int)settings.spectrum.sampleRate, 0, settings.spectrum.FffWindowType);
