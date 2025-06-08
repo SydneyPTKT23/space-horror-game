@@ -9,37 +9,55 @@ namespace SLC.SpaceHorror
     public class UICursorWaypointSystem : MonoBehaviour
     {
         [Header("References")]
-        public RectTransform cursor;            // The moving cursor UI
-
+        public RectTransform cursor;
         public MinimapBoundsData minimapBoundsData;
-        public RectTransform canvasRect;        // The Canvas RectTransform
-        public GameObject waypointPrefab;       // The prefab for a waypoint (UI Image)
-        public GameObject worldWaypointPrefab;  // Prefab for the 3D world waypoint marker
-        public UILineRenderer uiLineRenderer;   // The UI Line Renderer
+        public RectTransform canvasRect;
+        public GameObject waypointPrefab;
+        public GameObject worldWaypointPrefab;
+        public UILineRenderer uiLineRenderer;
 
         [Header("Settings")]
-        public float cursorMoveSpeed = 300f;
-        public float removeDistance = 20f;      // Distance threshold to remove waypoint on press
+        public float cursorMoveSpeed = 300.0f;
+        public float removeDistance = 20.0f;
 
-        private List<RectTransform> waypointUIList = new List<RectTransform>();
-        private List<Vector3> waypointWorldList = new List<Vector3>();
-        private List<GameObject> waypointWorldObjects = new List<GameObject>();
-
-        void Update()
+        private class WaypointData
         {
+            public RectTransform uiRect;
+            public TextMeshProUGUI numberText;
+            public Image image;
+            public GameObject worldObject;
+            public Vector3 worldPosition;
+        }
+
+        private readonly List<WaypointData> waypoints = new();
+        private readonly List<Vector3> cachedWorldPositions = new();
+
+        private float canvasWidth;
+        private float canvasHeight;
+
+        private bool uiLineDirty = false;
+
+        private void Start()
+        {
+            canvasWidth = canvasRect.rect.width;
+            canvasHeight = canvasRect.rect.height;
+        }
+
+        private void Update()
+        {
+            Vector2 cursorPos = cursor.anchoredPosition;
+
             HandleCursorMovement();
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.Space))
             {
-                // Try to remove a nearby waypoint first
-                int closeIndex = FindClosestWaypointIndex(cursor.anchoredPosition, removeDistance);
+                int closeIndex = FindClosestWaypointIndex(cursorPos, removeDistance);
                 if (closeIndex >= 0)
                 {
                     RemoveWaypointAt(closeIndex);
                 }
                 else
                 {
-                    // If no waypoint close, place a new one
                     PlaceWaypoint();
                 }
             }
@@ -54,20 +72,18 @@ namespace SLC.SpaceHorror
                 RemoveLastWaypoint();
             }
 
-            HighlightClosestWaypoint(cursor.anchoredPosition, removeDistance);
+            HighlightClosestWaypoint(cursorPos, removeDistance);
             UpdateUILineRenderer();
 
-            // Optionally, update world waypoint positions if cursor can move them dynamically
-            // (If waypoints are static after placement, you can remove this)
             UpdateWorldWaypointPositions();
         }
 
-        void HandleCursorMovement()
+        private void HandleCursorMovement()
         {
             float x = UnityEngine.Input.GetAxisRaw("Horizontal");
             float y = UnityEngine.Input.GetAxisRaw("Vertical");
 
-            Vector2 delta = new Vector2(x, y) * cursorMoveSpeed * Time.deltaTime;
+            Vector2 delta = cursorMoveSpeed * Time.deltaTime * new Vector2(x, y);
             Vector2 newPos = cursor.anchoredPosition + delta;
 
             Vector2 min = canvasRect.rect.min;
@@ -79,109 +95,105 @@ namespace SLC.SpaceHorror
             cursor.anchoredPosition = newPos;
         }
 
-        void PlaceWaypoint()
+        private void PlaceWaypoint()
         {
-            // Spawn UI waypoint
             GameObject wp = Instantiate(waypointPrefab, canvasRect);
             RectTransform wpRect = wp.GetComponent<RectTransform>();
             wpRect.anchoredPosition = cursor.anchoredPosition;
-            waypointUIList.Add(wpRect);
 
-            // Calculate world position
             Vector3 worldPos = UIToWorldPosition(wpRect.anchoredPosition);
-            waypointWorldList.Add(worldPos);
 
-            // Spawn 3D world waypoint object
+            GameObject worldWP = null;
             if (worldWaypointPrefab != null)
-            {
-                GameObject worldWP = Instantiate(worldWaypointPrefab, worldPos, Quaternion.identity);
-                waypointWorldObjects.Add(worldWP);
-            }
-            else
-            {
-                waypointWorldObjects.Add(null); // keep indexes aligned
-            }
+                worldWP = Instantiate(worldWaypointPrefab, worldPos, Quaternion.identity);
 
-            // Set waypoint number text on UI waypoint
             TextMeshProUGUI numberText = wp.GetComponentInChildren<TextMeshProUGUI>();
-            if (numberText != null)
+            Image image = wp.GetComponent<Image>();
+
+            WaypointData data = new()
             {
-                numberText.text = waypointUIList.Count.ToString();
-            }
+                uiRect = wpRect,
+                numberText = numberText,
+                image = image,
+                worldObject = worldWP,
+                worldPosition = worldPos
+            };
+
+            waypoints.Add(data);
+            RenumberWaypoints();
+            uiLineDirty = true;
         }
 
-        void HighlightClosestWaypoint(Vector2 pos, float maxDistance)
+        private void HighlightClosestWaypoint(Vector2 pos, float maxDistance)
         {
-            for (int i = 0; i < waypointUIList.Count; i++)
+            float maxDistSqr = maxDistance * maxDistance;
+
+            for (int i = 0; i < waypoints.Count; i++)
             {
-                float dist = Vector2.Distance(pos, waypointUIList[i].anchoredPosition);
-                Image img = waypointUIList[i].GetComponent<Image>();
-                if (img != null)
+                float distSqr = (pos - waypoints[i].uiRect.anchoredPosition).sqrMagnitude;
+                if (waypoints[i].image != null)
                 {
-                    img.color = dist < maxDistance ? Color.red : Color.white;
+                    waypoints[i].image.color = distSqr < maxDistSqr ? Color.red : Color.white;
                 }
             }
         }
 
-        void RemoveWaypointAt(int index)
+        private void RemoveWaypointAt(int index)
         {
-            if (index >= 0 && index < waypointUIList.Count)
+            if (index >= 0 && index < waypoints.Count)
             {
-                Destroy(waypointUIList[index].gameObject);
-                waypointUIList.RemoveAt(index);
+                Destroy(waypoints[index].uiRect.gameObject);
 
-                waypointWorldList.RemoveAt(index);
+                if (waypoints[index].worldObject != null)
+                    Destroy(waypoints[index].worldObject);
 
-                if (waypointWorldObjects[index] != null)
-                    Destroy(waypointWorldObjects[index]);
-                waypointWorldObjects.RemoveAt(index);
+                waypoints.RemoveAt(index);
 
                 RenumberWaypoints();
+                uiLineDirty = true;
             }
         }
 
-        void RemoveLastWaypoint()
+        private void RemoveLastWaypoint()
         {
-            int lastIndex = waypointUIList.Count - 1;
+            int lastIndex = waypoints.Count - 1;
             if (lastIndex >= 0)
             {
-                Destroy(waypointUIList[lastIndex].gameObject);
-                waypointUIList.RemoveAt(lastIndex);
+                Destroy(waypoints[lastIndex].uiRect.gameObject);
 
-                waypointWorldList.RemoveAt(lastIndex);
+                if (waypoints[lastIndex].worldObject != null)
+                    Destroy(waypoints[lastIndex].worldObject);
 
-                if (waypointWorldObjects[lastIndex] != null)
-                    Destroy(waypointWorldObjects[lastIndex]);
-                waypointWorldObjects.RemoveAt(lastIndex);
+                waypoints.RemoveAt(lastIndex);
 
                 RenumberWaypoints();
+                uiLineDirty = true;
             }
         }
 
-        void ClearAllWaypoints()
+        private void ClearAllWaypoints()
         {
-            foreach (var wp in waypointUIList)
-                Destroy(wp.gameObject);
-            waypointUIList.Clear();
-
-            waypointWorldList.Clear();
-
-            foreach (var wp in waypointWorldObjects)
-                if (wp != null) Destroy(wp);
-            waypointWorldObjects.Clear();
+            foreach (var wp in waypoints)
+            {
+                Destroy(wp.uiRect.gameObject);
+                if (wp.worldObject != null)
+                    Destroy(wp.worldObject);
+            }
+            waypoints.Clear();
+            uiLineDirty = true;
         }
 
-        int FindClosestWaypointIndex(Vector2 pos, float maxDistance)
+        private int FindClosestWaypointIndex(Vector2 pos, float maxDistance)
         {
             int closestIndex = -1;
-            float closestDist = maxDistance;
+            float closestDistSqr = maxDistance * maxDistance;
 
-            for (int i = 0; i < waypointUIList.Count; i++)
+            for (int i = 0; i < waypoints.Count; i++)
             {
-                float dist = Vector2.Distance(pos, waypointUIList[i].anchoredPosition);
-                if (dist < closestDist)
+                float distSqr = (pos - waypoints[i].uiRect.anchoredPosition).sqrMagnitude;
+                if (distSqr < closestDistSqr)
                 {
-                    closestDist = dist;
+                    closestDistSqr = distSqr;
                     closestIndex = i;
                 }
             }
@@ -189,84 +201,83 @@ namespace SLC.SpaceHorror
             return closestIndex;
         }
 
-        void RenumberWaypoints()
+        private void RenumberWaypoints()
         {
-            for (int i = 0; i < waypointUIList.Count; i++)
+            for (int i = 0; i < waypoints.Count; i++)
             {
-                TextMeshProUGUI numberText = waypointUIList[i].GetComponentInChildren<TextMeshProUGUI>();
-                if (numberText != null)
+                if (waypoints[i].numberText != null)
                 {
-                    numberText.text = (i + 1).ToString();
+                    waypoints[i].numberText.text = (i + 1).ToString();
                 }
             }
         }
 
-        void UpdateUILineRenderer()
+        private void UpdateUILineRenderer()
         {
-            if (waypointUIList.Count < 2)
+            if (!uiLineDirty)
+                return;
+
+            if (waypoints.Count < 2)
             {
                 uiLineRenderer.Points = new Vector2[0];
+                uiLineRenderer.SetAllDirty();
+                uiLineDirty = false;
                 return;
             }
 
-            Vector2[] points = new Vector2[waypointUIList.Count];
-            for (int i = 0; i < waypointUIList.Count; i++)
+            Vector2[] points = new Vector2[waypoints.Count];
+            for (int i = 0; i < waypoints.Count; i++)
             {
-                points[i] = waypointUIList[i].anchoredPosition;
+                points[i] = waypoints[i].uiRect.anchoredPosition;
             }
 
             uiLineRenderer.Points = points;
             uiLineRenderer.SetAllDirty();
+            uiLineDirty = false;
         }
 
-        Vector3 UIToWorldPosition(Vector2 uiPos)
+        private Vector3 UIToWorldPosition(Vector2 uiPos)
         {
-            float canvasWidth = canvasRect.rect.width;
-            float canvasHeight = canvasRect.rect.height;
-
-            // Normalize UI pos from (-canvasWidth/2, canvasWidth/2) to (0,1)
-            Vector2 normalized = new Vector2(
-                (uiPos.x + canvasWidth / 2f) / canvasWidth,
-                (uiPos.y + canvasHeight / 2f) / canvasHeight
+            Vector2 normalized = new(
+                (uiPos.x + canvasWidth / 2.0f) / canvasWidth,
+                (uiPos.y + canvasHeight / 2.0f) / canvasHeight
             );
 
-            // Map normalized 0-1 to worldMin - worldMax
             float worldX = Mathf.Lerp(minimapBoundsData.worldMin.x, minimapBoundsData.worldMax.x, normalized.x);
             float worldZ = Mathf.Lerp(minimapBoundsData.worldMin.y, minimapBoundsData.worldMax.y, normalized.y);
 
             return new Vector3(worldX, 0f, worldZ);
         }
 
-        Vector2 WorldToUIPosition(Vector3 worldPos)
+        private Vector2 WorldToUIPosition(Vector3 worldPos)
         {
-            float canvasWidth = canvasRect.rect.width;
-            float canvasHeight = canvasRect.rect.height;
-
             float normalizedX = Mathf.InverseLerp(minimapBoundsData.worldMin.x, minimapBoundsData.worldMax.x, worldPos.x);
             float normalizedY = Mathf.InverseLerp(minimapBoundsData.worldMin.y, minimapBoundsData.worldMax.y, worldPos.z);
 
-            float uiX = normalizedX * canvasWidth - canvasWidth / 2f;
-            float uiY = normalizedY * canvasHeight - canvasHeight / 2f;
+            float uiX = normalizedX * canvasWidth - canvasWidth / 2.0f;
+            float uiY = normalizedY * canvasHeight - canvasHeight / 2.0f;
 
             return new Vector2(uiX, uiY);
         }
 
         public IReadOnlyList<Vector3> GetWorldWaypoints()
         {
-            return waypointWorldList.AsReadOnly();
+            cachedWorldPositions.Clear();
+            for (int i = 0; i < waypoints.Count; i++)
+                cachedWorldPositions.Add(waypoints[i].worldPosition);
+
+            return cachedWorldPositions;
         }
 
-        void UpdateWorldWaypointPositions()
+        private void UpdateWorldWaypointPositions()
         {
-            // Optional: if UI waypoints can move after placement,
-            // keep world waypoint objects synced with UI waypoints
-            for (int i = 0; i < waypointUIList.Count; i++)
+            for (int i = 0; i < waypoints.Count; i++)
             {
-                if (waypointWorldObjects[i] != null)
+                if (waypoints[i].worldObject != null)
                 {
-                    Vector3 newWorldPos = UIToWorldPosition(waypointUIList[i].anchoredPosition);
-                    waypointWorldObjects[i].transform.position = newWorldPos;
-                    waypointWorldList[i] = newWorldPos;
+                    Vector3 newWorldPos = UIToWorldPosition(waypoints[i].uiRect.anchoredPosition);
+                    waypoints[i].worldObject.transform.position = newWorldPos;
+                    waypoints[i].worldPosition = newWorldPos;
                 }
             }
         }

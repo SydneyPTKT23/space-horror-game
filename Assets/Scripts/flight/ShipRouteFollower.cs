@@ -9,21 +9,22 @@ namespace SLC.SpaceHorror
         public UICursorWaypointSystem waypointSystem;
 
         [Header("Movement Settings")]
-        public float maxSpeed = 5f;
-        public float acceleration = 2f;
-        public float rotationSpeed = 2f;
+        public float maxSpeed = 5.0f;
+        public float acceleration = 2.0f;
+        public float rotationSpeed = 2.0f;
         public float stoppingDistance = 0.5f;
-        public float decelerationDistance = 3f;
+        public float decelerationDistance = 3.0f;
 
-        private List<Vector3> route = new List<Vector3>();
+        private readonly List<Vector3> route = new();
         private int currentWaypointIndex = 0;
         private bool isFollowingRoute = false;
         private bool isPaused = false;
-
         private float currentSpeed = 0f;
 
-        void Update()
+        private void Update()
         {
+            if (waypointSystem == null) return;
+
             if (UnityEngine.Input.GetKeyDown(KeyCode.R))
             {
                 StartFollowingRoute();
@@ -34,26 +35,31 @@ namespace SLC.SpaceHorror
                 TogglePause();
             }
 
-            if (isFollowingRoute && !isPaused)
-            {
-                FollowRoute();
-            }
+            if (!isFollowingRoute || isPaused) return;
+
+            FollowRoute();
         }
 
-        void StartFollowingRoute()
+        private void StartFollowingRoute()
         {
-            route = new List<Vector3>(waypointSystem.GetWorldWaypoints());
+            var waypoints = waypointSystem.GetWorldWaypoints();
+            if (waypoints == null || waypoints.Count == 0)
+            {
+                isFollowingRoute = false;
+                return;
+            }
+
+            // Cache route once
+            route.Clear();
+            route.AddRange(waypoints);
+
             currentWaypointIndex = 0;
             currentSpeed = 0f;
-
-            if (route.Count > 0)
-            {
-                isFollowingRoute = true;
-                isPaused = false;
-            }
+            isFollowingRoute = true;
+            isPaused = false;
         }
 
-        void TogglePause()
+        private void TogglePause()
         {
             if (isFollowingRoute)
             {
@@ -61,7 +67,7 @@ namespace SLC.SpaceHorror
             }
         }
 
-        void FollowRoute()
+        private void FollowRoute()
         {
             if (currentWaypointIndex >= route.Count)
             {
@@ -70,32 +76,37 @@ namespace SLC.SpaceHorror
                 return;
             }
 
+            Vector3 currentPosition = transform.position;
             Vector3 target = route[currentWaypointIndex];
-            Vector3 direction = (target - transform.position);
-            float distance = direction.magnitude;
-            direction.Normalize();
 
-            // Smooth rotation toward target
-            if (direction != Vector3.zero)
+            Vector3 direction = target - currentPosition;
+            float distance = direction.magnitude;
+            if (distance == 0f) // Avoid division by zero and rotation issues
             {
-                Quaternion targetRotation = Quaternion.LookRotation(direction);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+                currentWaypointIndex++;
+                return;
             }
 
-            // Adjust speed based on distance
+            Vector3 directionNormalized = direction / distance;
+
+            // Smoothly rotate toward the target
+            Quaternion targetRotation = Quaternion.LookRotation(directionNormalized);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+
+            // Calculate target speed with smooth deceleration near the waypoint
             float targetSpeed = maxSpeed;
             if (distance <= decelerationDistance)
             {
-                targetSpeed = Mathf.Lerp(0, maxSpeed, distance / decelerationDistance);
+                targetSpeed = Mathf.Lerp(0f, maxSpeed, distance / decelerationDistance);
             }
 
-            // Accelerate/decelerate smoothly
+            // Accelerate or decelerate toward target speed
             currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * Time.deltaTime);
 
-            // Move ship
-            transform.position += transform.forward * currentSpeed * Time.deltaTime;
+            // Move forward
+            transform.position += currentSpeed * Time.deltaTime * transform.forward;
 
-            // Advance waypoint if reached
+            // Advance waypoint if close enough
             if (distance <= stoppingDistance)
             {
                 currentWaypointIndex++;
