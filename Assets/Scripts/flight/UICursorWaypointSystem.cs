@@ -10,6 +10,8 @@ namespace SLC.SpaceHorror
     {
         [Header("References")]
         public RectTransform cursor;            // The moving cursor UI
+
+        public MinimapBoundsData minimapBoundsData;
         public RectTransform canvasRect;        // The Canvas RectTransform
         public GameObject waypointPrefab;       // The prefab for a waypoint (UI Image)
         public GameObject worldWaypointPrefab;  // Prefab for the 3D world waypoint marker
@@ -219,9 +221,34 @@ namespace SLC.SpaceHorror
 
         Vector3 UIToWorldPosition(Vector2 uiPos)
         {
-            // Example conversion, adapt to your world space mapping
-            // For example, map UI x,y to world x,z plane at y=0
-            return new Vector3(uiPos.x, 0f, uiPos.y);
+            float canvasWidth = canvasRect.rect.width;
+            float canvasHeight = canvasRect.rect.height;
+
+            // Normalize UI pos from (-canvasWidth/2, canvasWidth/2) to (0,1)
+            Vector2 normalized = new Vector2(
+                (uiPos.x + canvasWidth / 2f) / canvasWidth,
+                (uiPos.y + canvasHeight / 2f) / canvasHeight
+            );
+
+            // Map normalized 0-1 to worldMin - worldMax
+            float worldX = Mathf.Lerp(minimapBoundsData.worldMin.x, minimapBoundsData.worldMax.x, normalized.x);
+            float worldZ = Mathf.Lerp(minimapBoundsData.worldMin.y, minimapBoundsData.worldMax.y, normalized.y);
+
+            return new Vector3(worldX, 0f, worldZ);
+        }
+
+        Vector2 WorldToUIPosition(Vector3 worldPos)
+        {
+            float canvasWidth = canvasRect.rect.width;
+            float canvasHeight = canvasRect.rect.height;
+
+            float normalizedX = Mathf.InverseLerp(minimapBoundsData.worldMin.x, minimapBoundsData.worldMax.x, worldPos.x);
+            float normalizedY = Mathf.InverseLerp(minimapBoundsData.worldMin.y, minimapBoundsData.worldMax.y, worldPos.z);
+
+            float uiX = normalizedX * canvasWidth - canvasWidth / 2f;
+            float uiY = normalizedY * canvasHeight - canvasHeight / 2f;
+
+            return new Vector2(uiX, uiY);
         }
 
         public IReadOnlyList<Vector3> GetWorldWaypoints()
