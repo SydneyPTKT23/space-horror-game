@@ -171,6 +171,7 @@ MonoBehaviour:
   cursor: {fileID: 730864920}
   canvasRect: {fileID: 1063727561}
   waypointPrefab: {fileID: 5617191172446374763, guid: 2901e1bceee906342bf142a007cdbdf9, type: 3}
+  worldWaypointPrefab: {fileID: 4657901478277083929, guid: 3834b3a0d4a51514c9f99cd00e343b9c, type: 3}
   uiLineRenderer: {fileID: 1187471399}
   cursorMoveSpeed: 300
   removeDistance: 20
@@ -739,7 +740,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   waypointSystem: {fileID: 373647331}
-  speed: 5
+  speed: 30
+  rotationSpeed: 5
   stoppingDistance: 0.5
 --- !u!4 &1601100956
 Transform:

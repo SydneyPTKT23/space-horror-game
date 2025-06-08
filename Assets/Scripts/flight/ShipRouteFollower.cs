@@ -7,12 +7,16 @@ namespace SLC.SpaceHorror
     {
         [Header("References")]
         public UICursorWaypointSystem waypointSystem;
+
+        [Header("Movement Settings")]
         public float speed = 5f;
+        public float rotationSpeed = 2f;
         public float stoppingDistance = 0.5f;
 
         private List<Vector3> route = new List<Vector3>();
         private int currentWaypointIndex = 0;
         private bool isFollowingRoute = false;
+        private bool isPaused = false;
 
         void Update()
         {
@@ -21,7 +25,12 @@ namespace SLC.SpaceHorror
                 StartFollowingRoute();
             }
 
-            if (isFollowingRoute)
+            if (UnityEngine.Input.GetKeyDown(KeyCode.P))
+            {
+                TogglePause();
+            }
+
+            if (isFollowingRoute && !isPaused)
             {
                 FollowRoute();
             }
@@ -35,6 +44,15 @@ namespace SLC.SpaceHorror
             if (route.Count > 0)
             {
                 isFollowingRoute = true;
+                isPaused = false;
+            }
+        }
+
+        void TogglePause()
+        {
+            if (isFollowingRoute)
+            {
+                isPaused = !isPaused;
             }
         }
 
@@ -47,9 +65,19 @@ namespace SLC.SpaceHorror
             }
 
             Vector3 target = route[currentWaypointIndex];
-            Vector3 moveDir = (target - transform.position).normalized;
-            transform.position += moveDir * speed * Time.deltaTime;
+            Vector3 direction = (target - transform.position).normalized;
 
+            // Smoothly rotate toward the target
+            if (direction != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(direction);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            }
+
+            // Move forward
+            transform.position += transform.forward * speed * Time.deltaTime;
+
+            // Check if close enough to target
             if (Vector3.Distance(transform.position, target) <= stoppingDistance)
             {
                 currentWaypointIndex++;
