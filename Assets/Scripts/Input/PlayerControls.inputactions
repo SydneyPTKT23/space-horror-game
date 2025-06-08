@@ -1,5 +1,5 @@
 {
-    "name": "Controls",
+    "name": "PlayerControls",
     "maps": [
         {
             "name": "PlayerMovement",
@@ -36,7 +36,7 @@
                     "name": "Crouch",
                     "type": "Button",
                     "id": "b5c193be-a528-4aad-83df-1a429e99fd8b",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false

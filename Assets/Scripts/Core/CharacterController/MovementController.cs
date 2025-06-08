@@ -8,196 +8,144 @@ namespace SLC.SpaceHorror.Core
     {
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 7.0f;
+        [SerializeField] private float crouchSpeed = 2.0f;
+        [Range(0f, 1f)][SerializeField] private float moveBackwardsSpeedPercent = 0.5f;
+        [Range(0f, 1f)][SerializeField] private float moveSideSpeedPercent = 0.75f;
         [SerializeField] private float jumpForce = 10.0f;
-        [Range(0.0f, 1.0f), SerializeField] private float moveBackwardsPercent = 0.5f;
-        [Range(0.0f, 1.0f), SerializeField] private float moveSidePercent = 0.75f;
 
         [Header("Ground Settings")]
         [SerializeField] private float gravityMultiplier = 2.5f;
         [SerializeField] private float stickToGroundForce = 5.0f;
-        [Space]
         [SerializeField] private LayerMask groundLayer = ~0;
+        [Space]
         [SerializeField] private float rayLength = 0.1f;
         [SerializeField] private float raySphereRadius = 0.1f;
 
         [Header("Smoothing")]
-        [SerializeField] private float smoothInput = 5.0f;
-        [SerializeField] private float smoothSpeed = 5.0f;
+        [SerializeField] private float smoothInputSpeed = 10.0f;
+        [SerializeField] private float smoothVelocitySpeed = 10.0f;
+        [SerializeField] private float smoothFinalDirectionSpeed = 10.0f;
 
-        private CharacterController m_characterController;
-        private InputHandler m_inputHandler;
-        private Health m_health;
-
-        private RaycastHit m_hitInfo;
-
-        [Space, Header("DEBUG")]
+        [Header("Debug (Read-Only)")]
         [SerializeField] private Vector2 m_inputVector;
         [SerializeField] private Vector2 m_smoothInputVector;
-        
         [Space]
-        [SerializeField] private Vector3 m_finalMoveDirection;
+        [SerializeField] private Vector3 m_smoothFinalMoveDir;
         [SerializeField] private Vector3 m_finalMoveVector;
-
         [Space]
         [SerializeField] private float m_currentSpeed;
         [SerializeField] private float m_smoothCurrentSpeed;
-        
         [Space]
-        [SerializeField] private float m_finalRayLength;
         [SerializeField] private bool m_isGrounded;
+        [SerializeField] private float m_inAirTimer;
 
-        public bool jump;
+        private CharacterController m_characterController;
+        private InputManager m_inputManager;
+        private Health m_health;
+        private RaycastHit m_hitInfo;
 
-        public float killHeight = -50.0f;
+        private float m_finalRayLength;
+        private bool m_previouslyGrounded;
+        private readonly float killHeight = -50.0f;
+
         public bool IsDead { get; private set; }
 
         private void Start()
         {
             m_characterController = GetComponent<CharacterController>();
-            m_inputHandler = GetComponent<InputHandler>();
-
-            m_inputHandler.OnJumpClicked += HandleJump;
-
+            m_inputManager = GetComponent<InputManager>();
             m_health = GetComponent<Health>();
+
             m_health.OnDie += OnDie;
+            m_inputManager.OnJumpClicked += HandleJump;
 
             m_finalRayLength = rayLength + m_characterController.center.y;
-            m_isGrounded = true;
         }
 
         private void Update()
         {
-            // Autokill player if they manage to fall out of the map to prevent softlocking.
+            if (IsDead) return;
+
+            SmoothMovementParameters();
+            CalculateSpeed();
+            CheckIfGrounded();
+            HandleMovement();
+            ApplyGravity();
+            ApplyMovement();
+        }
+
+        private void FixedUpdate()
+        {
             if (!IsDead && transform.position.y < killHeight)
             {
                 m_health.Kill();
             }
-
-            if (m_characterController)
-            {
-                // Check if the player is grounded.
-                CheckIfGrounded();
-
-                // Make controls smoother.
-                SmoothInput();
-                SmoothSpeed();
-
-                // Calculate player movement.
-                CalculateDirection();
-                CalculateSpeed();
-                CalculateFinalMovement();
-
-                // Move the player.
-                ApplyGravity();
-                ApplyMovement();
-            }
         }
 
-        private void OnDie()
-        {
-            IsDead = true;
-        }
-
-        private void SmoothInput()
-        {
-            m_inputVector = m_inputHandler.InputVector;
-            m_smoothInputVector = Vector2.Lerp(m_smoothInputVector, m_inputVector, Time.deltaTime * smoothInput);
-            Debug.DrawRay(transform.position, m_smoothInputVector, Color.yellow);
-        }
-
-        private void SmoothSpeed()
-        {
-            m_smoothCurrentSpeed = Mathf.Lerp(m_smoothCurrentSpeed, m_currentSpeed, Time.deltaTime * smoothSpeed);
-        }
+        private void OnDie() => IsDead = true;
 
         private void CheckIfGrounded()
         {
-            // Manually check for grounded because the CharacterController default is less reliable.
-            Vector3 t_origin = transform.position + m_characterController.center;
-            bool t_hitGround = Physics.SphereCast(t_origin, raySphereRadius, Vector3.down, out m_hitInfo, m_finalRayLength, groundLayer);
+            Vector3 origin = transform.position + m_characterController.center;
+            m_isGrounded = Physics.SphereCast(origin, raySphereRadius, Vector3.down, out m_hitInfo, m_finalRayLength, groundLayer);
 
-            // Draw the groundcheck for convenience.
-            Debug.DrawRay(t_origin, Vector3.down * rayLength, Color.red);
-            m_isGrounded = t_hitGround;
+#if UNITY_EDITOR
+            Debug.DrawRay(origin, Vector3.down * rayLength, Color.red);
+#endif
         }
 
-        private bool CheckIfRoof()
+        private void SmoothMovementParameters()
         {
-            Vector3 t_origin = transform.position;
-            bool t_hitRoof = Physics.SphereCast(t_origin, raySphereRadius, Vector3.up, out _, rayLength, groundLayer);
-            return t_hitRoof;
-        }
-
-        private void CalculateDirection()
-        {
-            Vector3 t_verticalMove = transform.forward * m_smoothInputVector.y;
-            Vector3 t_horizontalMove = transform.right * m_smoothInputVector.x;
-
-            Vector3 t_desiredDirection = t_verticalMove + t_horizontalMove;
-            Vector3 t_flatDirection = FlattenVectorOnSlopes(t_desiredDirection);
-
-            m_finalMoveDirection = t_flatDirection;
-        }
-
-        private Vector3 FlattenVectorOnSlopes(Vector3 t_flattenedVector)
-        {
-            // Adjust movement on slopes to keep speed consistent.
-            if (m_isGrounded)
-                t_flattenedVector = Vector3.ProjectOnPlane(t_flattenedVector, m_hitInfo.normal);
-
-            return t_flattenedVector;
-        }
-
-        private void CalculateFinalMovement()
-        {
-            Vector3 t_finalVector = m_smoothCurrentSpeed * m_finalMoveDirection;
-
-            m_finalMoveVector.x = t_finalVector.x;
-            m_finalMoveVector.z = t_finalVector.z;
-
-            if (m_characterController.isGrounded)
-                m_finalMoveVector.y += t_finalVector.y;
+            m_inputVector = m_inputManager.InputVector;
+            m_smoothInputVector = Vector2.Lerp(m_smoothInputVector, m_inputVector, Time.deltaTime * smoothInputSpeed);
+            m_smoothCurrentSpeed = Mathf.Lerp(m_smoothCurrentSpeed, m_currentSpeed, Time.deltaTime * smoothVelocitySpeed);
+            m_smoothFinalMoveDir = Vector3.Lerp(m_smoothFinalMoveDir, m_finalMoveVector, Time.deltaTime * smoothFinalDirectionSpeed);
         }
 
         private void CalculateSpeed()
         {
-            m_currentSpeed = !m_inputHandler.InputDetected ? 0.0f : moveSpeed;
-            m_currentSpeed = m_inputHandler.InputVector.y == -1 ? m_currentSpeed * moveBackwardsPercent : m_currentSpeed;
-            m_currentSpeed = m_inputHandler.InputVector.x != 0 && m_inputVector.y == 0 ? m_currentSpeed * moveSidePercent : m_currentSpeed;
+            if (!m_inputManager.InputDetected)
+            {
+                m_currentSpeed = 0f;
+                return;
+            }
+
+            m_currentSpeed = moveSpeed;
+
+            if (m_inputVector.y < 0)
+                m_currentSpeed *= moveBackwardsSpeedPercent;
+            else if (m_inputVector.x != 0 && m_inputVector.y == 0)
+                m_currentSpeed *= moveSideSpeedPercent;
+        }
+
+        private void HandleMovement()
+        {
+            if (!m_isGrounded) return;
+
+            Vector3 t_moveDir = Vector3.ProjectOnPlane(
+                (transform.forward * m_smoothInputVector.y) + (transform.right * m_smoothInputVector.x),
+                m_hitInfo.normal
+            );
+
+            m_finalMoveVector = new Vector3(t_moveDir.x * m_smoothCurrentSpeed, m_finalMoveVector.y, t_moveDir.z * m_smoothCurrentSpeed);
+            m_inAirTimer = 0.0f;
+            m_finalMoveVector.y = Mathf.Max(m_finalMoveVector.y, -stickToGroundForce);
         }
 
         private void HandleJump()
         {
-            if (m_isGrounded && jump == false)
-            {
-                jump = true;
+            if (!m_isGrounded) return;
 
-            }
+            m_finalMoveVector.y = jumpForce;
+            m_isGrounded = false;
         }
 
         private void ApplyGravity()
         {
-            // If grounded, add a little bit of extra downward force just in case.
-            if (m_characterController.isGrounded)
-            {
-                m_finalMoveVector.y = -stickToGroundForce;
+            if (m_isGrounded || m_finalMoveVector.y <= Physics.gravity.y) return;
 
-                if (jump)
-                {
-                    m_finalMoveVector.y = jumpForce;
-
-                    jump = false;
-                    m_isGrounded = false;
-                }
-            }
-            else
-            {
-                // If collided with a ceiling during air time, stop the player from sticking to the roof.
-                if (CheckIfRoof())
-                    m_finalMoveVector.y = -stickToGroundForce;
-
-                m_finalMoveVector += gravityMultiplier * Time.deltaTime * Physics.gravity;
-            }
+            m_inAirTimer += Time.deltaTime;
+            m_finalMoveVector += gravityMultiplier * Time.deltaTime * Physics.gravity;
         }
 
         private void ApplyMovement()

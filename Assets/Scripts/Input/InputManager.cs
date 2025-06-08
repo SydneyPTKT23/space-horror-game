@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 
 namespace SLC.SpaceHorror.Input
 {
-    public class InputHandler : MonoBehaviour, PlayerControls.IPlayerMovementActions
+    public class InputManager : MonoBehaviour, PlayerControls.IPlayerMovementActions
     {
         // Mouse
         private Vector2 m_mouseDelta;

@@ -12,14 +12,14 @@ namespace SLC.SpaceHorror.Core
 
         [Space, Header("UI")]
 
-        private InputHandler m_inputHandler;
+        private InputManager m_inputHandler;
         private Camera m_camera;
 
         public InteractableBase m_interactable;
 
         private void Awake()
         {
-            m_inputHandler = GetComponent<InputHandler>();
+            m_inputHandler = GetComponent<InputManager>();
             m_camera = GetComponentInChildren<Camera>();            
         }
 

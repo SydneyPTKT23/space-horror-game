@@ -9,12 +9,12 @@ namespace SLC.SpaceHorror.Core
 
         private float m_desiredPitch;
 
-        private InputHandler m_inputHandler;
+        private InputManager m_inputHandler;
         public Camera m_cam;
 
         private void Awake()
         {
-            m_inputHandler = GetComponent<InputHandler>();
+            m_inputHandler = GetComponent<InputManager>();
 
             ChangeCursorState();
         }
