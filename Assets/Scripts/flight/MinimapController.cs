@@ -1,12 +1,15 @@
+using SLC.SpaceHorror;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class MinimapCameraController : MonoBehaviour, IScrollHandler, IPointerClickHandler
+public class MinimapController : MonoBehaviour, IScrollHandler, IPointerClickHandler
 {
     [Header("References")]
     public RectTransform mapContent;
     public RectTransform containerRect;
     public RectTransform cursor;
+
+    public MinimapBoundsData bounds;
 
     [Header("Zoom Settings")]
     public float minZoom = 0.5f;
@@ -35,12 +38,8 @@ public class MinimapCameraController : MonoBehaviour, IScrollHandler, IPointerCl
     {
         Vector2 delta = input * panSpeed * Time.deltaTime;
 
-        // Calculate scaled map size
-        float scaledMapWidth = mapContent.rect.width * mapContent.localScale.x;
-        float scaledMapHeight = mapContent.rect.height * mapContent.localScale.y;
-
-        float maxX = (scaledMapWidth * 0.5f) - (containerRect.rect.width * 0.5f);
-        float maxY = (scaledMapHeight * 0.5f) - (containerRect.rect.height * 0.5f);
+        float maxX = (mapContent.rect.width * currentScale.x * 0.5f) - (containerRect.rect.width * 0.5f);
+        float maxY = (mapContent.rect.height * currentScale.y * 0.5f) - (containerRect.rect.height * 0.5f);
         maxX = Mathf.Max(0, maxX);
         maxY = Mathf.Max(0, maxY);
 
@@ -97,56 +96,61 @@ public class MinimapCameraController : MonoBehaviour, IScrollHandler, IPointerCl
     public void OnScroll(PointerEventData eventData)
     {
         float delta = eventData.scrollDelta.y * zoomSpeed;
-        Vector2 oldScale = mapContent.localScale;
-
-        // Calculate new scale clamped between minZoom and maxZoom
-        Vector2 newScale = oldScale + new Vector2(delta, delta);
+        Vector2 newScale = currentScale + new Vector2(delta, delta);
         newScale = Vector2.Max(Vector2.one * minZoom, Vector2.Min(Vector2.one * maxZoom, newScale));
-
-        if (newScale == oldScale)
-            return; // No change in scale
-
-        // Get cursor position relative to container in local space
-        Vector2 cursorLocalPosBefore = ScreenPointToLocalPointInRectangle(containerRect, cursor.position);
-
-        // Calculate scale ratio
-        Vector2 scaleRatio = new Vector2(newScale.x / oldScale.x, newScale.y / oldScale.y);
-
-        // Adjust mapContent position to keep map under cursor
-        Vector2 mapPos = mapContent.anchoredPosition;
-        Vector2 adjustedPos = mapPos - Vector2.Scale(cursorLocalPosBefore, scaleRatio - Vector2.one);
-
-        // Apply new scale and adjusted position
         mapContent.localScale = newScale;
-        mapContent.anchoredPosition = adjustedPos;
-
         currentScale = newScale;
 
+        AdjustCursorForZoom();
         ClampMapPosition();
+
+        Pan(Vector2.zero);
+    }
+
+    void AdjustCursorForZoom()
+    {
+        Vector2 cursorRangeOld = (containerRect.rect.size - cursor.rect.size) * 0.5f;
+
+        Vector2 normalizedCursorPos = new Vector2(
+            cursor.anchoredPosition.x / cursorRangeOld.x,
+            cursor.anchoredPosition.y / cursorRangeOld.y
+        );
+
+        normalizedCursorPos.x = Mathf.Clamp(normalizedCursorPos.x, -1f, 1f);
+        normalizedCursorPos.y = Mathf.Clamp(normalizedCursorPos.y, -1f, 1f);
+
+        Vector2 cursorRangeNew = (containerRect.rect.size - cursor.rect.size) * 0.5f;
+
+        cursor.anchoredPosition = new Vector2(
+            normalizedCursorPos.x * cursorRangeNew.x,
+            normalizedCursorPos.y * cursorRangeNew.y
+        );
+    }
+
+    public Vector3 MapToWorld(Vector2 mapLocalPos)
+    {
+        Vector2 normalized = new Vector2(
+            (mapLocalPos.x / mapContent.rect.width) + 0.5f,
+            (mapLocalPos.y / mapContent.rect.height) + 0.5f
+        );
+
+        float worldX = Mathf.Lerp(bounds.worldMin.x, bounds.worldMax.x, normalized.x);
+        float worldZ = Mathf.Lerp(bounds.worldMin.y, bounds.worldMax.y, normalized.y);
+        return new Vector3(worldX, 0, worldZ);
     }
 
     void ClampMapPosition()
     {
-        float scaledMapWidth = mapContent.rect.width * mapContent.localScale.x;
-        float scaledMapHeight = mapContent.rect.height * mapContent.localScale.y;
-
-        float maxX = (scaledMapWidth * 0.5f) - (containerRect.rect.width * 0.5f);
-        float maxY = (scaledMapHeight * 0.5f) - (containerRect.rect.height * 0.5f);
+        float maxX = (mapContent.rect.width * currentScale.x * 0.5f) - (containerRect.rect.width * 0.5f);
+        float maxY = (mapContent.rect.height * currentScale.y * 0.5f) - (containerRect.rect.height * 0.5f);
         maxX = Mathf.Max(0, maxX);
         maxY = Mathf.Max(0, maxY);
 
-        Vector2 pos = mapContent.anchoredPosition;
-        pos.x = Mathf.Clamp(pos.x, -maxX, maxX);
-        pos.y = Mathf.Clamp(pos.y, -maxY, maxY);
+        Vector2 mapPos = mapContent.anchoredPosition;
+        mapPos.x = Mathf.Clamp(mapPos.x, -maxX, maxX);
+        mapPos.y = Mathf.Clamp(mapPos.y, -maxY, maxY);
 
-        mapContent.anchoredPosition = pos;
-    }
-
-    Vector2 ScreenPointToLocalPointInRectangle(RectTransform rectTransform, Vector3 screenPoint)
-    {
-        Vector2 localPoint;
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, screenPoint, null, out localPoint);
-        return localPoint;
+        mapContent.anchoredPosition = mapPos;
     }
 
     public void OnPointerClick(PointerEventData eventData)

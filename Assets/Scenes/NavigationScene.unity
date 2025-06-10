@@ -163,18 +163,16 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 373647329}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aca16a94c2827ba41a896d468611ae5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   cursor: {fileID: 730864920}
-  minimapBoundsData: {fileID: 11400000, guid: 88ae528ee581ab24097554c049886a4f, type: 2}
-  canvasRect: {fileID: 887561975}
+  minimapController: {fileID: 1817862450}
   waypointPrefab: {fileID: 5617191172446374763, guid: 2901e1bceee906342bf142a007cdbdf9, type: 3}
   worldWaypointPrefab: {fileID: 4657901478277083929, guid: 3834b3a0d4a51514c9f99cd00e343b9c, type: 3}
   uiLineRenderer: {fileID: 1187471399}
-  cursorMoveSpeed: 300
   removeDistance: 20
 --- !u!1 &433018630
 GameObject:
@@ -1094,11 +1092,11 @@ MonoBehaviour:
   mapContent: {fileID: 887561975}
   containerRect: {fileID: 1817862449}
   cursor: {fileID: 730864920}
+  bounds: {fileID: 11400000, guid: 88ae528ee581ab24097554c049886a4f, type: 2}
   minZoom: 0.5
   maxZoom: 2.5
   zoomSpeed: 0.1
   panSpeed: 100
-  cursorMoveScale: 100
 --- !u!114 &1817862451
 MonoBehaviour:
   m_ObjectHideFlags: 0

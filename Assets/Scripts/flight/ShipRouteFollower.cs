@@ -42,7 +42,7 @@ namespace SLC.SpaceHorror
 
         private void StartFollowingRoute()
         {
-            var waypoints = waypointSystem.GetWorldWaypoints();
+            /*var waypoints = waypointSystem.GetWorldWaypoints();
             if (waypoints == null || waypoints.Count == 0)
             {
                 isFollowingRoute = false;
@@ -56,7 +56,7 @@ namespace SLC.SpaceHorror
             currentWaypointIndex = 0;
             currentSpeed = 0f;
             isFollowingRoute = true;
-            isPaused = false;
+            isPaused = false;*/
         }
 
         private void TogglePause()
