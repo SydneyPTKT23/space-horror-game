@@ -25,14 +25,22 @@ public class MinimapCameraController : MonoBehaviour, IScrollHandler, IPointerCl
         {
             Pan(input.normalized);
         }
+        else
+        {
+            Pan(Vector2.zero);
+        }
     }
 
     void Pan(Vector2 input)
     {
         Vector2 delta = input * panSpeed * Time.deltaTime;
 
-        float maxX = (mapContent.rect.width * 0.5f) - (containerRect.rect.width * 0.5f);
-        float maxY = (mapContent.rect.height * 0.5f) - (containerRect.rect.height * 0.5f);
+        // Calculate scaled map size
+        float scaledMapWidth = mapContent.rect.width * mapContent.localScale.x;
+        float scaledMapHeight = mapContent.rect.height * mapContent.localScale.y;
+
+        float maxX = (scaledMapWidth * 0.5f) - (containerRect.rect.width * 0.5f);
+        float maxY = (scaledMapHeight * 0.5f) - (containerRect.rect.height * 0.5f);
         maxX = Mathf.Max(0, maxX);
         maxY = Mathf.Max(0, maxY);
 
@@ -45,7 +53,6 @@ public class MinimapCameraController : MonoBehaviour, IScrollHandler, IPointerCl
         {
             if ((input.x < 0 && mapPos.x < maxX) || (input.x > 0 && mapPos.x > -maxX))
             {
-                // If cursor is not centered in opposite direction, move cursor first
                 if ((input.x < 0 && cursorPos.x > 0) || (input.x > 0 && cursorPos.x < 0))
                 {
                     cursorPos.x = Mathf.MoveTowards(cursorPos.x, 0, Mathf.Abs(delta.x));
@@ -60,10 +67,6 @@ public class MinimapCameraController : MonoBehaviour, IScrollHandler, IPointerCl
             {
                 cursorPos.x = Mathf.Clamp(cursorPos.x + delta.x, -cursorRange.x, cursorRange.x);
             }
-        }
-        else
-        {
-            cursorPos.x = Mathf.MoveTowards(cursorPos.x, 0, panSpeed * Time.deltaTime);
         }
 
         // Y Axis
@@ -86,14 +89,11 @@ public class MinimapCameraController : MonoBehaviour, IScrollHandler, IPointerCl
                 cursorPos.y = Mathf.Clamp(cursorPos.y + delta.y, -cursorRange.y, cursorRange.y);
             }
         }
-        else
-        {
-            cursorPos.y = Mathf.MoveTowards(cursorPos.y, 0, panSpeed * Time.deltaTime);
-        }
 
         mapContent.anchoredPosition = mapPos;
         cursor.anchoredPosition = cursorPos;
     }
+
 
     public void OnScroll(PointerEventData eventData)
     {
