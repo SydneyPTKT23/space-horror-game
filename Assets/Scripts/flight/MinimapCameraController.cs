@@ -94,16 +94,59 @@ public class MinimapCameraController : MonoBehaviour, IScrollHandler, IPointerCl
         cursor.anchoredPosition = cursorPos;
     }
 
-
     public void OnScroll(PointerEventData eventData)
     {
         float delta = eventData.scrollDelta.y * zoomSpeed;
-        Vector2 newScale = currentScale + new Vector2(delta, delta);
+        Vector2 oldScale = mapContent.localScale;
+
+        // Calculate new scale clamped between minZoom and maxZoom
+        Vector2 newScale = oldScale + new Vector2(delta, delta);
         newScale = Vector2.Max(Vector2.one * minZoom, Vector2.Min(Vector2.one * maxZoom, newScale));
+
+        if (newScale == oldScale)
+            return; // No change in scale
+
+        // Get cursor position relative to container in local space
+        Vector2 cursorLocalPosBefore = ScreenPointToLocalPointInRectangle(containerRect, cursor.position);
+
+        // Calculate scale ratio
+        Vector2 scaleRatio = new Vector2(newScale.x / oldScale.x, newScale.y / oldScale.y);
+
+        // Adjust mapContent position to keep map under cursor
+        Vector2 mapPos = mapContent.anchoredPosition;
+        Vector2 adjustedPos = mapPos - Vector2.Scale(cursorLocalPosBefore, scaleRatio - Vector2.one);
+
+        // Apply new scale and adjusted position
         mapContent.localScale = newScale;
+        mapContent.anchoredPosition = adjustedPos;
+
         currentScale = newScale;
 
-        Pan(Vector2.zero);
+        ClampMapPosition();
+    }
+
+    void ClampMapPosition()
+    {
+        float scaledMapWidth = mapContent.rect.width * mapContent.localScale.x;
+        float scaledMapHeight = mapContent.rect.height * mapContent.localScale.y;
+
+        float maxX = (scaledMapWidth * 0.5f) - (containerRect.rect.width * 0.5f);
+        float maxY = (scaledMapHeight * 0.5f) - (containerRect.rect.height * 0.5f);
+        maxX = Mathf.Max(0, maxX);
+        maxY = Mathf.Max(0, maxY);
+
+        Vector2 pos = mapContent.anchoredPosition;
+        pos.x = Mathf.Clamp(pos.x, -maxX, maxX);
+        pos.y = Mathf.Clamp(pos.y, -maxY, maxY);
+
+        mapContent.anchoredPosition = pos;
+    }
+
+    Vector2 ScreenPointToLocalPointInRectangle(RectTransform rectTransform, Vector3 screenPoint)
+    {
+        Vector2 localPoint;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, screenPoint, null, out localPoint);
+        return localPoint;
     }
 
     public void OnPointerClick(PointerEventData eventData)
