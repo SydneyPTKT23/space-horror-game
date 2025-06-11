@@ -9,14 +9,14 @@ namespace SLC.SpaceHorror
     public class UICursorWaypointSystem : MonoBehaviour
     {
         [Header("References")]
-        public RectTransform cursor;                        // Cursor under minimapContainer
-        public MinimapController minimapController;         // Reference to your map controller
+        public RectTransform cursor;
+        public MinimapController minimapController;
         public GameObject waypointPrefab;
         public GameObject worldWaypointPrefab;
         public UILineRenderer uiLineRenderer;
 
         [Header("Settings")]
-        public float removeDistance = 20.0f;
+        public float removeDistance = 20f;
 
         private class WaypointData
         {
@@ -29,49 +29,36 @@ namespace SLC.SpaceHorror
 
         private readonly List<WaypointData> waypoints = new();
         private readonly List<Vector3> cachedWorldPositions = new();
+        private bool uiLineDirty;
 
-        private bool uiLineDirty = false;
-
-        private void Update()
+        void Update()
         {
-            Vector2 cursorLocalPos = GetCursorLocalMapPosition();
+            Vector2 cursorLocal = GetCursorLocalMapPosition();
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.Space))
             {
-                int closeIndex = FindClosestWaypointIndex(cursorLocalPos, removeDistance);
+                int closeIndex = FindClosestWaypointIndex(cursorLocal, removeDistance);
                 if (closeIndex >= 0)
-                {
                     RemoveWaypointAt(closeIndex);
-                }
                 else
-                {
-                    PlaceWaypoint(cursorLocalPos);
-                }
+                    PlaceWaypoint(cursorLocal);
             }
 
-            if (UnityEngine.Input.GetKeyDown(KeyCode.C))
-            {
-                ClearAllWaypoints();
-            }
+            if (UnityEngine.Input.GetKeyDown(KeyCode.C)) ClearAllWaypoints();
+            if (UnityEngine.Input.GetKeyDown(KeyCode.Backspace)) RemoveLastWaypoint();
 
-            if (UnityEngine.Input.GetKeyDown(KeyCode.Backspace))
-            {
-                RemoveLastWaypoint();
-            }
-
-            HighlightClosestWaypoint(cursorLocalPos, removeDistance);
+            HighlightClosestWaypoint(cursorLocal, removeDistance);
             UpdateUILineRenderer();
             UpdateWorldWaypointPositions();
         }
 
         private Vector2 GetCursorLocalMapPosition()
         {
-            Vector2 localPoint;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            _ = RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 minimapController.mapContent,
                 cursor.position,
                 null,
-                out localPoint
+                out Vector2 localPoint
             );
             return localPoint;
         }
@@ -83,19 +70,15 @@ namespace SLC.SpaceHorror
             wpRect.anchoredPosition = localCursorPos;
 
             Vector3 worldPos = minimapController.MapToWorld(localCursorPos);
-
-            GameObject worldWP = null;
-            if (worldWaypointPrefab != null)
-                worldWP = Instantiate(worldWaypointPrefab, worldPos, Quaternion.identity);
-
-            TextMeshProUGUI numberText = wp.GetComponentInChildren<TextMeshProUGUI>();
-            Image image = wp.GetComponent<Image>();
+            GameObject worldWP = worldWaypointPrefab != null
+                ? Instantiate(worldWaypointPrefab, worldPos, Quaternion.identity)
+                : null;
 
             WaypointData data = new()
             {
                 uiRect = wpRect,
-                numberText = numberText,
-                image = image,
+                numberText = wp.GetComponentInChildren<TextMeshProUGUI>(),
+                image = wp.GetComponent<Image>(),
                 worldObject = worldWP,
                 worldPosition = worldPos
             };
@@ -109,11 +92,11 @@ namespace SLC.SpaceHorror
         {
             float maxDistSqr = maxDistance * maxDistance;
 
-            foreach (var wp in waypoints)
+            foreach (WaypointData wp in waypoints)
             {
-                float distSqr = (cursorLocalPos - wp.uiRect.anchoredPosition).sqrMagnitude;
                 if (wp.image != null)
                 {
+                    float distSqr = (cursorLocalPos - wp.uiRect.anchoredPosition).sqrMagnitude;
                     wp.image.color = distSqr < maxDistSqr ? Color.red : Color.white;
                 }
             }
@@ -124,7 +107,6 @@ namespace SLC.SpaceHorror
             if (index < 0 || index >= waypoints.Count) return;
 
             Destroy(waypoints[index].uiRect.gameObject);
-
             if (waypoints[index].worldObject != null)
                 Destroy(waypoints[index].worldObject);
 
@@ -135,14 +117,13 @@ namespace SLC.SpaceHorror
 
         private void RemoveLastWaypoint()
         {
-            int lastIndex = waypoints.Count - 1;
-            if (lastIndex >= 0)
-                RemoveWaypointAt(lastIndex);
+            if (waypoints.Count > 0)
+                RemoveWaypointAt(waypoints.Count - 1);
         }
 
         private void ClearAllWaypoints()
         {
-            foreach (var wp in waypoints)
+            foreach (WaypointData wp in waypoints)
             {
                 Destroy(wp.uiRect.gameObject);
                 if (wp.worldObject != null)
@@ -155,8 +136,8 @@ namespace SLC.SpaceHorror
 
         private int FindClosestWaypointIndex(Vector2 pos, float maxDistance)
         {
-            int closestIndex = -1;
             float closestDistSqr = maxDistance * maxDistance;
+            int closestIndex = -1;
 
             for (int i = 0; i < waypoints.Count; i++)
             {
@@ -176,53 +157,47 @@ namespace SLC.SpaceHorror
             for (int i = 0; i < waypoints.Count; i++)
             {
                 if (waypoints[i].numberText != null)
-                {
                     waypoints[i].numberText.text = (i + 1).ToString();
-                }
             }
         }
 
         private void UpdateUILineRenderer()
         {
-            if (!uiLineDirty)
-                return;
+            if (!uiLineDirty) return;
 
             if (waypoints.Count < 2)
             {
-                uiLineRenderer.Points = new Vector2[0];
-                uiLineRenderer.SetAllDirty();
-                uiLineDirty = false;
-                return;
+                uiLineRenderer.Points = System.Array.Empty<Vector2>();
             }
-
-            Vector2[] points = new Vector2[waypoints.Count];
-            for (int i = 0; i < waypoints.Count; i++)
+            else
             {
-                points[i] = waypoints[i].uiRect.anchoredPosition;
+                Vector2[] points = new Vector2[waypoints.Count];
+                for (int i = 0; i < waypoints.Count; i++)
+                    points[i] = waypoints[i].uiRect.anchoredPosition;
+
+                uiLineRenderer.Points = points;
             }
 
-            uiLineRenderer.Points = points;
             uiLineRenderer.SetAllDirty();
             uiLineDirty = false;
         }
 
         private void UpdateWorldWaypointPositions()
         {
-            foreach (var wp in waypoints)
+            foreach (WaypointData wp in waypoints)
             {
-                if (wp.worldObject != null)
-                {
-                    Vector3 newWorldPos = minimapController.MapToWorld(wp.uiRect.anchoredPosition);
-                    wp.worldObject.transform.position = newWorldPos;
-                    wp.worldPosition = newWorldPos;
-                }
+                if (wp.worldObject == null) continue;
+
+                Vector3 newPos = minimapController.MapToWorld(wp.uiRect.anchoredPosition);
+                wp.worldObject.transform.position = newPos;
+                wp.worldPosition = newPos;
             }
         }
 
         public IReadOnlyList<Vector3> GetWorldWaypoints()
         {
             cachedWorldPositions.Clear();
-            foreach (var wp in waypoints)
+            foreach (WaypointData wp in waypoints)
                 cachedWorldPositions.Add(wp.worldPosition);
 
             return cachedWorldPositions;
