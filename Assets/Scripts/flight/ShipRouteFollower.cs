@@ -112,5 +112,24 @@ namespace SLC.SpaceHorror
                 currentWaypointIndex++;
             }
         }
+
+        public bool IsFollowingRoute => isFollowingRoute && !isPaused;
+
+        public float GetCurrentSpeed() => currentSpeed;
+
+        public float GetRemainingDistance()
+        {
+            if (!isFollowingRoute || route == null || currentWaypointIndex >= route.Count)
+                return 0f;
+
+            float total = Vector3.Distance(transform.position, route[currentWaypointIndex]);
+            for (int i = currentWaypointIndex; i < route.Count - 1; i++)
+            {
+                total += Vector3.Distance(route[i], route[i + 1]);
+            }
+
+            return total;
+        }
+
     }
 }
