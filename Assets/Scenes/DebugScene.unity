@@ -266,8 +266,8 @@ GameObject:
   - component: {fileID: 162968776}
   - component: {fileID: 162968775}
   - component: {fileID: 162968774}
-  - component: {fileID: 162968773}
   - component: {fileID: 162968772}
+  - component: {fileID: 162968773}
   - component: {fileID: 162968777}
   - component: {fileID: 162968771}
   m_Layer: 0
@@ -328,8 +328,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8fecaeb1526d84478b197944a07374c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  inputReader: {fileID: 11400000, guid: 85e59f0a0ce535b4ca399cd6f9b22656, type: 2}
   sensitivity: 80
-  m_cam: {fileID: 963194227}
+  lookAngleMinMax: {x: -90, y: 90}
+  cam: {fileID: 963194227}
 --- !u!114 &162968774
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -342,6 +344,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 901f4f3fc571a9544936bdf936a14d58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  inputReader: {fileID: 11400000, guid: 85e59f0a0ce535b4ca399cd6f9b22656, type: 2}
   moveSpeed: 6
   crouchSpeed: 2
   moveBackwardsSpeedPercent: 0.5
@@ -351,20 +354,17 @@ MonoBehaviour:
   stickToGroundForce: 2
   groundLayer:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 1
   rayLength: 1
   raySphereRadius: 0.2
   smoothInputSpeed: 10
   smoothVelocitySpeed: 10
-  smoothFinalDirectionSpeed: 10
   m_inputVector: {x: 0, y: 0}
   m_smoothInputVector: {x: 0, y: 0}
-  m_smoothFinalMoveDir: {x: 0, y: 0, z: 0}
   m_finalMoveVector: {x: 0, y: 0, z: 0}
   m_currentSpeed: 0
   m_smoothCurrentSpeed: 0
   m_isGrounded: 0
-  m_inAirTimer: 0
 --- !u!114 &162968775
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -377,6 +377,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 50a45ae6497a0b643839b13a9cefd326, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  inputReader: {fileID: 11400000, guid: 85e59f0a0ce535b4ca399cd6f9b22656, type: 2}
+  OnJumpPressed:
+    m_PersistentCalls:
+      m_Calls: []
+  OnCrouchPressed:
+    m_PersistentCalls:
+      m_Calls: []
+  OnInteractPressed:
+    m_PersistentCalls:
+      m_Calls: []
+  OnPausePressed:
+    m_PersistentCalls:
+      m_Calls: []
+  OnUISubmit:
+    m_PersistentCalls:
+      m_Calls: []
+  OnUICancel:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &162968776
 Transform:
   m_ObjectHideFlags: 0
@@ -405,11 +424,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 40effdfa79b23ed43971548ef9a73852, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  inputReader: {fileID: 11400000, guid: 85e59f0a0ce535b4ca399cd6f9b22656, type: 2}
   rayDistance: 2
   raySphereRadius: 0.1
   interactableLayer:
     serializedVersion: 2
     m_Bits: 1
+  m_camera: {fileID: 963194227}
   m_interactable: {fileID: 0}
 --- !u!1 &190488287
 GameObject:

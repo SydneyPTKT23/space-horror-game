@@ -18,9 +18,9 @@ namespace SLC.SpaceHorror.Core
 
         private bool m_isLoading;
 
-        public override void OnInteract()
+        public override void OnInteracted()
         {
-            base.OnInteract();
+            base.OnInteracted();
 
             HandleLoading();
         }

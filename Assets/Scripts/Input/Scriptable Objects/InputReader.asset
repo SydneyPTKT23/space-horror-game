@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0502e609326128d42b0e2cbee72505cf, type: 3}
+  m_Name: InputReader
+  m_EditorClassIdentifier: 
+  crouchToggleMode: 0
+  JumpEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  InteractEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  CrouchEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  PauseEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  SubmitEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  CancelEvent:
+    m_PersistentCalls:
+      m_Calls: []

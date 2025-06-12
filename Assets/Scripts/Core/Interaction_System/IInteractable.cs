@@ -4,6 +4,6 @@ namespace SLC.SpaceHorror.Core
     {
         bool IsInteractable { get; }
 
-        void OnInteract();
+        void OnInteracted();
     }
 }

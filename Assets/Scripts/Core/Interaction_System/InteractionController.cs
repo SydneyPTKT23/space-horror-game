@@ -5,27 +5,31 @@ namespace SLC.SpaceHorror.Core
 {
     public class InteractionController : MonoBehaviour
     {
+        [Header("Data")]
+        [SerializeField] private InputReader inputReader;
+
         [Header("Detection Settings")]
         [SerializeField] private float rayDistance = 2.0f;
         [SerializeField] private float raySphereRadius = 0.1f;
+
+        [Tooltip("Layers considered interactable. Defaults to everything.")]
         [SerializeField] private LayerMask interactableLayer = ~0;
 
-        [Space, Header("UI")]
-
-        private InputManager m_inputHandler;
-        private Camera m_camera;
+        [Header("References")]
+        [SerializeField] private Camera m_camera;
 
         public InteractableBase m_interactable;
 
-        private void Awake()
+        private void OnEnable()
         {
-            m_inputHandler = GetComponent<InputManager>();
-            m_camera = GetComponentInChildren<Camera>();            
+            if (inputReader != null)
+                inputReader.InteractEvent.AddListener(HandleInteractInput);
         }
 
-        private void Start()
+        private void OnDisable()
         {
-            m_inputHandler.OnInteractClicked += CheckForInput;
+            if (inputReader != null)
+                inputReader.InteractEvent.RemoveListener(HandleInteractInput);
         }
 
         private void Update()
@@ -35,36 +39,28 @@ namespace SLC.SpaceHorror.Core
 
         private void CheckForInteractables()
         {
-            Ray t_ray = new(m_camera.transform.position, m_camera.transform.forward);
-            bool t_hitSomething = Physics.SphereCast(t_ray, raySphereRadius, out RaycastHit t_hitInfo, rayDistance, interactableLayer);
+            Ray ray = new(m_camera.transform.position, m_camera.transform.forward);
+            bool hit = Physics.SphereCast(ray, raySphereRadius, out RaycastHit hitInfo, rayDistance, interactableLayer);
 
-            if (t_hitSomething)
+            if (hit && hitInfo.transform.TryGetComponent(out InteractableBase foundInteractable))
             {
-                if (t_hitInfo.transform.TryGetComponent<InteractableBase>(out var t_interactable))
-                {
-                    m_interactable = t_interactable;
-                }
+                if (m_interactable != foundInteractable)
+                    m_interactable = foundInteractable;
             }
-            else
+            else if (m_interactable != null)
             {
                 ResetInteractable();
             }
 
-            Debug.DrawRay(t_ray.origin, t_ray.direction * rayDistance, t_hitSomething ? Color.green : Color.red);
+            Debug.DrawRay(ray.origin, ray.direction * rayDistance, hit ? Color.green : Color.red);
         }
 
-        private void Interact()
+        private void HandleInteractInput()
         {
-            m_interactable.OnInteract();
+            if (m_interactable != null)
+                m_interactable.OnInteracted();
+
             ResetInteractable();
-        }
-
-        private void CheckForInput()
-        {
-            if (m_interactable == null)
-                return;
-
-            Interact();
         }
 
         private void ResetInteractable()

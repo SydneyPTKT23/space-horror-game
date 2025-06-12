@@ -5,33 +5,43 @@ namespace SLC.SpaceHorror.Core
 {
     public class CameraController : MonoBehaviour
     {
-        [SerializeField] private int sensitivity = 10;
+        [Header("Data")]
+        [SerializeField] private InputReader inputReader;
 
-        private float m_desiredPitch;
+        [Header("Camera Settings")]
+        [SerializeField] private float sensitivity = 10f;
+        [SerializeField] private Vector2 lookAngleMinMax = Vector2.zero;
 
-        private InputManager m_inputHandler;
-        public Camera m_cam;
+        [Header("References")]
+        [SerializeField] private Camera cam;
+
+        private float _desiredPitch = 0f;
 
         private void Awake()
         {
-            m_inputHandler = GetComponent<InputManager>();
+            if (cam == null)
+                cam = GetComponentInChildren<Camera>();
 
-            ChangeCursorState();
+            LockCursor();
         }
 
         private void Update()
         {
-            float t_mouseX = m_inputHandler.MouseDelta.x * sensitivity * Time.deltaTime;
-            float t_mouseY = m_inputHandler.MouseDelta.y * sensitivity * Time.deltaTime;
+            Vector2 lookDelta = inputReader != null ? inputReader.MouseDelta : Vector2.zero;
 
-            m_desiredPitch -= t_mouseY;
-            m_desiredPitch = Mathf.Clamp(m_desiredPitch, -90.0f, 90.0f);
+            float yaw = lookDelta.x * sensitivity * Time.deltaTime;
+            float pitch = lookDelta.y * sensitivity * Time.deltaTime;
 
-            m_cam.transform.localRotation = Quaternion.Euler(m_desiredPitch, 0f, 0f);
-            transform.Rotate(Vector3.up * t_mouseX);
+            _desiredPitch -= pitch;
+            _desiredPitch = Mathf.Clamp(_desiredPitch, lookAngleMinMax.x, lookAngleMinMax.y);
+
+            if (cam != null)
+                cam.transform.localRotation = Quaternion.Euler(_desiredPitch, 0f, 0f);
+
+            transform.Rotate(Vector3.up * yaw);
         }
 
-        private void ChangeCursorState()
+        private void LockCursor()
         {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;

@@ -11,7 +11,7 @@ namespace SLC.SpaceHorror.Core
         public bool IsInteractable => isInteractable;
         public string TooltipMessage => tooltipMessage;
 
-        public virtual void OnInteract()
+        public virtual void OnInteracted()
         {
             Debug.Log("Interacted with: " + gameObject.name);
         }

@@ -34,7 +34,7 @@ namespace SLC.SpaceHorror.Core
 
         private void Start()
         {
-            inputManager = FindObjectOfType<InputManager>();
+            inputManager = FindFirstObjectByType<InputManager>();
 
             if (uiCamera != null)
             {
@@ -49,7 +49,7 @@ namespace SLC.SpaceHorror.Core
             }
         }
 
-        public override void OnInteract()
+        public override void OnInteracted()
         {
             if (!IsInteractable) return;
 
