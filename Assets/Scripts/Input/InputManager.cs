@@ -1,76 +1,30 @@
-using System;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace SLC.SpaceHorror.Input
 {
-    public class InputManager : MonoBehaviour, PlayerControls.IPlayerMovementActions
+    public class InputManager : MonoBehaviour
     {
-        // Mouse
-        private Vector2 m_mouseDelta;
-        public Vector2 MouseDelta => m_mouseDelta;
+        [SerializeField] private InputReader inputReader;
 
-        // Keyboard
-        private Vector2 m_inputVector;
-        public Vector2 InputVector => m_inputVector;
-        public bool InputDetected => InputVector != Vector2.zero;
+        private void Awake()
+        {
+            if (inputReader != null)
+                inputReader.Initialize();
+        }
 
-        public Action OnJumpClicked;
-        public Action OnInteractClicked;
-
-        public Action OnCrouchClicked;
-
-        public PlayerControls m_controls;
-
-        #region Built-In Functions
         private void OnEnable()
         {
-            if (m_controls != null)
-                return;
-
-            m_controls = new PlayerControls();
-            m_controls.PlayerMovement.SetCallbacks(this);
-            m_controls.PlayerMovement.Enable();
+            inputReader?.EnablePlayerInput();
         }
 
         private void OnDisable()
         {
-            m_controls.PlayerMovement.Disable();
-        }
-        #endregion
-
-        public void OnLook(InputAction.CallbackContext t_context)
-        {
-            m_mouseDelta = t_context.ReadValue<Vector2>();
+            inputReader?.DisablePlayerInput();
         }
 
-        public void OnMove(InputAction.CallbackContext t_context)
+        private void OnDestroy()
         {
-            m_inputVector = t_context.ReadValue<Vector2>();
-        }
-
-        public void OnJump(InputAction.CallbackContext t_context)
-        {
-            if (!t_context.performed)
-                return;
-
-            OnJumpClicked?.Invoke();
-        }
-
-        public void OnCrouch(InputAction.CallbackContext t_context)
-        {
-            if (!t_context.performed)
-                return;
-
-            OnCrouchClicked?.Invoke();
-        }
-
-        public void OnInteract(InputAction.CallbackContext t_context)
-        {
-            if (!t_context.performed)
-                return;
-
-            OnInteractClicked?.Invoke();
+            inputReader?.ResetValues();
         }
     }
 }

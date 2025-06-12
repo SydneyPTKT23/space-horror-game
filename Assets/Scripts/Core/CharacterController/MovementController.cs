@@ -39,6 +39,8 @@ namespace SLC.SpaceHorror.Core
         [SerializeField] private bool m_isGrounded;
         [SerializeField] private float m_inAirTimer;
 
+        private bool movementEnabled = true;
+
         private CharacterController m_characterController;
         private InputManager m_inputManager;
         private Health m_health;
@@ -57,14 +59,14 @@ namespace SLC.SpaceHorror.Core
             m_health = GetComponent<Health>();
 
             m_health.OnDie += OnDie;
-            m_inputManager.OnJumpClicked += HandleJump;
+            //m_inputManager.OnJumpClicked += HandleJump;
 
             m_finalRayLength = rayLength + m_characterController.center.y;
         }
 
         private void Update()
         {
-            if (IsDead) return;
+            if (IsDead || !movementEnabled) return;
 
             SmoothMovementParameters();
             CalculateSpeed();
@@ -83,6 +85,11 @@ namespace SLC.SpaceHorror.Core
         }
 
         private void OnDie() => IsDead = true;
+
+        public void SetMovementEnabled(bool enabled)
+        {
+            movementEnabled = enabled;
+        }
 
         private void CheckIfGrounded()
         {
@@ -122,12 +129,12 @@ namespace SLC.SpaceHorror.Core
         {
             if (!m_isGrounded) return;
 
-            Vector3 t_moveDir = Vector3.ProjectOnPlane(
+            Vector3 moveDir = Vector3.ProjectOnPlane(
                 (transform.forward * m_smoothInputVector.y) + (transform.right * m_smoothInputVector.x),
                 m_hitInfo.normal
             );
 
-            m_finalMoveVector = new Vector3(t_moveDir.x * m_smoothCurrentSpeed, m_finalMoveVector.y, t_moveDir.z * m_smoothCurrentSpeed);
+            m_finalMoveVector = new Vector3(moveDir.x * m_smoothCurrentSpeed, m_finalMoveVector.y, moveDir.z * m_smoothCurrentSpeed);
             m_inAirTimer = 0.0f;
             m_finalMoveVector.y = Mathf.Max(m_finalMoveVector.y, -stickToGroundForce);
         }

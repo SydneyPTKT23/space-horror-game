@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e04909a434df1646839a651cf7d394c, type: 3}
   m_Name: MinimapBounds
   m_EditorClassIdentifier: 
-  worldMin: {x: -100, y: -100}
-  worldMax: {x: 100, y: 100}
+  worldMin: {x: -500, y: -500}
+  worldMax: {x: 500, y: 500}
