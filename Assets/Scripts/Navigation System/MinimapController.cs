@@ -23,6 +23,8 @@ namespace SLC
         private Vector2 currentScale = Vector2.one;
         private float maxX, maxY;
 
+        public bool IsInteracting { get; set; }
+
         private void Start()
         {
             UpdateBounds();
@@ -30,6 +32,8 @@ namespace SLC
 
         private void Update()
         {
+            if (!IsInteracting) return;
+
             Vector2 input = new(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
             if (input != Vector2.zero)
                 ApplyPanInput(input.normalized);

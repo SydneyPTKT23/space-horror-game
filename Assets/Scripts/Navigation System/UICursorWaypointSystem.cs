@@ -18,6 +18,8 @@ namespace SLC.SpaceHorror
         [Header("Settings")]
         public float removeDistance = 20f;
 
+        public bool IsInteracting { get; set; }
+
         private class WaypointData
         {
             public RectTransform uiRect;
@@ -31,8 +33,10 @@ namespace SLC.SpaceHorror
         private readonly List<Vector3> cachedWorldPositions = new();
         private bool uiLineDirty;
 
-        void Update()
+        private void Update()
         {
+            if (!IsInteracting) return;
+
             Vector2 cursorLocal = GetCursorLocalMapPosition();
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.Space))
