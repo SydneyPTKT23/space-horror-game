@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using System.Collections.Generic;
+using static SLC.SpaceHorror.ShipPowerSystem;
 
 namespace SLC.SpaceHorror
 {
@@ -9,11 +10,27 @@ namespace SLC.SpaceHorror
         [Header("References")]
         public ShipPowerSystem powerSystem;
 
-        public TMP_Text totalDrawText;
-        public TMP_Text availableRTGText;
+        public TMP_Text reactorOutputText;
+        public TMP_Text activeLoadText;
+        public TMP_Text availableReserveText;
+        public TMP_Text gridUtilizationText;
+        public TMP_Text stabilityIndexText;
+        public TMP_Text emergencyFeedText;
 
+        [Header("UI - Subsystem List")]
         public GameObject subsystemEntryPrefab;
         public Transform subsystemListContainer;
+
+        [Header("Warning UI Elements")]
+        public GameObject warningPanel;
+        public TMP_Text warningText;
+        public Color warningColor = Color.red;
+        public Color normalColor = Color.white;
+
+        public float blinkFrequency = 2f;
+
+        private float blinkTimer = 0f;
+        private bool isWarningActive = false;
 
         private readonly List<GameObject> activeSubsystemUIEntries = new();
 
@@ -32,9 +49,24 @@ namespace SLC.SpaceHorror
 
             powerSystem.Tick(Time.deltaTime);
 
-            // Update summary texts frequently for fluctuation effect
             UpdateSummaryTexts();
+            UpdateWarnings();
+
+            if (isWarningActive)
+            {
+                blinkTimer += Time.deltaTime * blinkFrequency * 2 * Mathf.PI;
+                float alpha = (Mathf.Sin(blinkTimer) + 1f) / 2f;
+                Color c = warningText.color;
+                c.a = Mathf.Lerp(0.3f, 1f, alpha);
+                warningText.color = c;
+            }
+            else
+            {
+                blinkTimer = 0f;
+                warningText.color = warningColor;
+            }
         }
+
 
         public void BuildSubsystemEntries()
         {
@@ -57,17 +89,58 @@ namespace SLC.SpaceHorror
 
         public void UpdateSummaryTexts()
         {
-            float usedKW = powerSystem.GetUsedPowerkW();
-            float totalKW = powerSystem.totalCapacityKW;
-            float availableRTG = powerSystem.GetUsedPowerRTG();
-
-            totalDrawText.text = $"LOAD: {usedKW:0.0} kW / {totalKW:0.0} kW";
-            availableRTGText.text = $"RESERVE: {availableRTG:F2} RTGs";
+            reactorOutputText.text = $"REACTOR OUTPUT     {powerSystem.totalCapacityKW:0.00} kW";
+            activeLoadText.text = $"ACTIVE LOAD        {powerSystem.GetUsedPowerkW():0.00} kW";
+            availableReserveText.text = $"AVAILABLE RESERVE  {powerSystem.GetAvailableReserveKW():0.00} kW";
+            gridUtilizationText.text = $"GRID UTILIZATION   {powerSystem.GetGridUtilizationPercent():0.0}%";
+            stabilityIndexText.text = $"STABILITY INDEX    {powerSystem.GetStabilityIndex()}";
+            emergencyFeedText.text = $"EMERGENCY FEED     {(powerSystem.EmergencyFeedEngaged ? "ENGAGED" : "DISENGAGED")}";
         }
+
+        public void UpdateWarnings()
+        {
+            if (powerSystem == null || warningPanel == null || warningText == null)
+                return;
+
+            var warnings = powerSystem.GetActiveWarnings();
+
+            isWarningActive = warnings.Count > 0;
+
+            if (!isWarningActive)
+            {
+                warningPanel.SetActive(false);
+                warningText.text = "";
+                warningText.color = normalColor;
+                return;
+            }
+
+            warningPanel.SetActive(true);
+
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            foreach (var warning in warnings)
+            {
+                switch (warning)
+                {
+                    case PowerWarningType.Overload:
+                        sb.AppendLine("WARNING: Power Overload Imminent");
+                        break;
+                    case PowerWarningType.EmergencyFeedActive:
+                        sb.AppendLine("EMERGENCY FEED ENGAGED");
+                        break;
+                    case PowerWarningType.SubsystemFailure:
+                        sb.AppendLine("CRITICAL SUBSYSTEM OFFLINE");
+                        break;
+                    case PowerWarningType.UnstableGrid:
+                        sb.AppendLine("GRID STABILITY AT RISK");
+                        break;
+                }
+            }
+            warningText.text = sb.ToString();
+        }
+
 
         public void RefreshSubsystemEntries()
         {
-            // Called when a subsystem status changes to refresh UI entries (buttons, colors, etc.)
             foreach (var entryGO in activeSubsystemUIEntries)
             {
                 var entryUI = entryGO.GetComponent<SubsystemEntryUI>();

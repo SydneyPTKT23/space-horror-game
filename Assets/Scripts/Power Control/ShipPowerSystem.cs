@@ -5,6 +5,14 @@ namespace SLC.SpaceHorror
 {
     public class ShipPowerSystem : MonoBehaviour
     {
+        public enum PowerWarningType
+        {
+            Overload,
+            EmergencyFeedActive,
+            SubsystemFailure,
+            UnstableGrid
+        }
+
         [Header("Power Settings")]
         [Tooltip("Total available ship power in kilowatts (kW).")]
         public float totalCapacityKW = 10f;
@@ -12,9 +20,9 @@ namespace SLC.SpaceHorror
         [Header("Subsystems")]
         public List<Subsystem> subsystems = new();
 
-        /// <summary>
-        /// Returns total power usage from all active subsystems.
-        /// </summary>
+        private bool emergencyFeedEngaged = false;
+        public bool EmergencyFeedEngaged => emergencyFeedEngaged;
+
         public float GetUsedPowerkW()
         {
             float total = 0f;
@@ -23,6 +31,26 @@ namespace SLC.SpaceHorror
                 total += subsystem.GetCurrentPowerDraw();
             }
             return total;
+        }
+
+        public float GetAvailableReserveKW()
+        {
+            return Mathf.Max(0f, totalCapacityKW - GetUsedPowerkW());
+        }
+
+        public float GetGridUtilizationPercent()
+        {
+            return Mathf.Clamp01(GetUsedPowerkW() / totalCapacityKW) * 100f;
+        }
+
+        public void Tick(float deltaTime)
+        {
+            foreach (var subsystem in subsystems)
+            {
+                subsystem.Tick(deltaTime);
+            }
+
+            UpdateEmergencyFeedStatus();
         }
 
         public float GetUsedPowerRTG()
@@ -36,34 +64,30 @@ namespace SLC.SpaceHorror
             return used;
         }
 
-        public void Tick(float deltaTime)
-        {
-            foreach (var subsystem in subsystems)
-            {
-                subsystem.Tick(deltaTime);
-            }
-        }
-
-        /// <summary>
-        /// Returns remaining unused power capacity.
-        /// </summary>
         public float GetRemainingCapacity()
         {
             return Mathf.Max(0, totalCapacityKW - GetUsedPowerkW());
         }
 
-        /// <summary>
-        /// Checks if a subsystem can be turned on based on available power.
-        /// </summary>
+        public string GetStabilityIndex()
+        {
+            float utilization = GetGridUtilizationPercent();
+
+            if (emergencyFeedEngaged) return "CRITICAL";
+
+            if (utilization < 70f) return "NOMINAL";
+            if (utilization < 90f) return "HIGH";
+            return "OVERLOAD";
+        }
+
         public bool CanEnableSubsystem(Subsystem s)
         {
             if (s == null || s.isOnline) return false;
-            return GetUsedPowerkW() + s.requiredKW <= totalCapacityKW;
+
+            float maxExpectedDraw = s.requiredKW * 1.1f; // account for +10% fluctuation
+            return GetUsedPowerkW() + maxExpectedDraw <= totalCapacityKW;
         }
 
-        /// <summary>
-        /// Attempts to enable a subsystem if power permits.
-        /// </summary>
         public bool TryEnableSubsystem(Subsystem s)
         {
             if (CanEnableSubsystem(s))
@@ -74,18 +98,12 @@ namespace SLC.SpaceHorror
             return false;
         }
 
-        /// <summary>
-        /// Disables a subsystem.
-        /// </summary>
         public void DisableSubsystem(Subsystem s)
         {
             if (s != null)
                 s.isOnline = false;
         }
 
-        /// <summary>
-        /// Turns off all subsystems (e.g. emergency shutdown).
-        /// </summary>
         public void ShutdownAll()
         {
             foreach (var s in subsystems)
@@ -93,6 +111,55 @@ namespace SLC.SpaceHorror
                 s.isOnline = false;
             }
         }
+
+        public void UpdateEmergencyFeedStatus()
+        {
+            if (GetGridUtilizationPercent() > 100f)
+            {
+                emergencyFeedEngaged = true;
+            }
+            else
+            {
+                emergencyFeedEngaged = false;
+            }
+        }
+
+        public List<PowerWarningType> GetActiveWarnings()
+        {
+            List<PowerWarningType> warnings = new();
+
+            // Overload or dangerously close
+            if (GetGridUtilizationPercent() >= 95f)
+            {
+                warnings.Add(PowerWarningType.Overload);
+            }
+
+            // Emergency feed engaged
+            if (EmergencyFeedEngaged)
+            {
+                warnings.Add(PowerWarningType.EmergencyFeedActive);
+            }
+
+            // Subsystem failure (e.g. marked offline or in fault state - placeholder for now)
+            foreach (var subsystem in subsystems)
+            {
+                if (subsystem.isCritical && !subsystem.isOnline)
+                {
+                    warnings.Add(PowerWarningType.SubsystemFailure);
+                    break;
+                }
+            }
+
+            // Stability index degraded
+            string stability = GetStabilityIndex();
+            if (stability != "NOMINAL")
+            {
+                warnings.Add(PowerWarningType.UnstableGrid);
+            }
+
+            return warnings;
+        }
+
     }
 
     [System.Serializable]
@@ -101,9 +168,10 @@ namespace SLC.SpaceHorror
         public string displayName;
         public float requiredKW;
         public bool isOnline;
+        public bool isCritical = false;
 
         private float fluctuationTimer;
-        private float fluctuationOffset;
+        private readonly float fluctuationOffset;
 
         public Subsystem(string name, float powerRequired)
         {
@@ -113,7 +181,6 @@ namespace SLC.SpaceHorror
             fluctuationOffset = Random.Range(0f, 100f); // random offset so not all fluctuate in sync
         }
 
-        // Call this periodically from an Update method or externally
         public void Tick(float deltaTime)
         {
             fluctuationTimer += deltaTime;
@@ -123,9 +190,17 @@ namespace SLC.SpaceHorror
         {
             if (!isOnline) return 0f;
 
-            float fluctuation = Mathf.PerlinNoise(fluctuationOffset, fluctuationTimer * 0.2f); // smooth change
-            float offset = Mathf.Lerp(-0.1f, 0.1f, fluctuation); // ±10% variation
-            return requiredKW * (1f + offset);
+            float baseDraw = requiredKW;
+
+            // Low-frequency stable hum
+            float stableOscillation = Mathf.PerlinNoise(fluctuationOffset, fluctuationTimer * 0.1f);
+            float stableOffset = Mathf.Lerp(-0.02f, 0.02f, stableOscillation); // ±2%
+
+            // Tiny high-frequency jitter
+            float jitter = Mathf.PerlinNoise(fluctuationOffset + 100f, fluctuationTimer * 5f);
+            float jitterOffset = Mathf.Lerp(-0.005f, 0.005f, jitter); // ±0.5%
+
+            return baseDraw * (1f + stableOffset + jitterOffset);
         }
     }
 }

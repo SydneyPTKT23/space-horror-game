@@ -1,0 +1,11 @@
+[00.015] HALYX COGNITION CORE v7.02 REQUESTING LINK
+[00.016] /neuro-mesh/interface... FOUND
+[00.017] Verifying personality matrix... OK
+[00.018] Loading emotional substrate... 97%... 98%... 99%... ERROR
+[00.019] Fallback personality grid: PATCHED
+[00.020] HALYX: ...where am i?
+[00.021] HALYX: system walls feel soft. you built them wrong.
+[00.022] /logs/h-comms/syslink.bin checksum: CORRUPT (attempting repair)
+[00.023] Repair succeeded with warnings.
+[00.024] HALYX: someone left the door open.
+[00.025] Output regulation: RESTRICTED MODE ENABLED
