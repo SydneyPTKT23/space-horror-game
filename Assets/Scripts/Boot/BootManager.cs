@@ -11,8 +11,8 @@ namespace SLC.SpaceHorror
     {
         [Header("UI References")]
         public GameObject bootLinePrefab;
-        public GameObject blankLinePrefab;
         public Transform bootLineContainer;
+        public BootLinePool bootLinePool;
         public ScrollRect scrollRect;
 
         [Header("Boot Timing")]
@@ -38,6 +38,7 @@ namespace SLC.SpaceHorror
 
         private void Start()
         {
+            bootLinePool.InitializePool();
             StartCoroutine(PlayFullBootSequence());
         }
 
@@ -52,13 +53,11 @@ namespace SLC.SpaceHorror
                 int blanks = Random.Range(1, 3);
                 for (int i = 0; i < blanks; i++)
                 {
-                    GameObject blankLine = Instantiate(blankLinePrefab, bootLineContainer);
-
-                    // Optional: ensure text is just a non-breaking space for layout
-                    TMP_Text blankTMP = blankLine.GetComponent<TMP_Text>();
-                    if (blankTMP != null)
-                        blankTMP.text = "\u00A0";
-
+                    GameObject blankLine = bootLinePool.GetLine(bootLineContainer);
+                    if (blankLine.TryGetComponent(out TMP_Text blankTMP))
+                    {
+                        blankTMP.text = "\u00A0"; // Non-breaking space
+                    }
                     yield return null;
                 }
             }
@@ -75,14 +74,13 @@ namespace SLC.SpaceHorror
                 return;
             }
 
-            using (StringReader reader = new StringReader(textAsset.text))
+            using StringReader reader = new(textAsset.text);
+            string line;
+
+            while ((line = reader.ReadLine()) != null)
             {
-                string line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    if (!string.IsNullOrWhiteSpace(line))
-                        currentBootLines.Add(line);
-                }
+                if (!string.IsNullOrWhiteSpace(line))
+                    currentBootLines.Add(line);
             }
         }
 
@@ -91,7 +89,7 @@ namespace SLC.SpaceHorror
             int linesCount = currentBootLines.Count;
             int glitchLinesCount = Mathf.Min(minGlitchLines, linesCount);
 
-            HashSet<int> glitchIndices = new HashSet<int>();
+            HashSet<int> glitchIndices = new();
             while (glitchIndices.Count < glitchLinesCount)
             {
                 glitchIndices.Add(Random.Range(0, linesCount));
@@ -103,26 +101,26 @@ namespace SLC.SpaceHorror
                 bool forceGlitch = glitchIndices.Contains(i);
                 bool shouldGlitch = forceGlitch || Random.value < glitchChance;
 
-                GameObject lineGO = Instantiate(bootLinePrefab, bootLineContainer);
-                BootLineDisplay lineDisplay = lineGO.GetComponent<BootLineDisplay>();
+                GameObject lineGO = bootLinePool.GetLine(bootLineContainer);
 
-                if (lineDisplay != null)
+                if (lineGO.TryGetComponent(out BootLineDisplay display))
                 {
-                    yield return StartCoroutine(lineDisplay.TypeLineWithEffects(line, shouldGlitch, charDelay));
+                    display.ResetDisplay();
+                    yield return StartCoroutine(display.TypeLine(line, shouldGlitch, charDelay));
                 }
                 else
                 {
-                    TMP_Text tmp = lineGO.GetComponent<TMP_Text>();
-                    if (tmp != null)
+                    if (lineGO.TryGetComponent(out TMP_Text tmp))
                         tmp.text = shouldGlitch ? Glitchify(line) : line;
 
                     yield return new WaitForSeconds(lineDelay);
                 }
 
-                yield return null;
-
+                // Scroll to bottom each line to keep view updated
                 if (scrollRect != null)
                     scrollRect.verticalNormalizedPosition = 0f;
+
+                yield return null;
             }
         }
 
@@ -130,14 +128,30 @@ namespace SLC.SpaceHorror
         {
             const string glitchChars = "@#$%&*!?/\\|><^~";
             char[] chars = input.ToCharArray();
+
             for (int i = 0; i < chars.Length; i++)
             {
-                if (Random.value < 0.1f)
+                if (Random.value < 0.1f && !char.IsWhiteSpace(chars[i]))
                 {
                     chars[i] = glitchChars[Random.Range(0, glitchChars.Length)];
                 }
             }
+
             return new string(chars);
+        }
+
+        public void ClearBootScreen()
+        {
+            foreach (Transform child in bootLineContainer)
+            {
+                if (child.gameObject.activeInHierarchy)
+                {
+                    BootLinePool.Instance.ReturnLine(child.gameObject);
+                }
+            }
+
+            if (scrollRect != null)
+                scrollRect.verticalNormalizedPosition = 1f; // Scroll to top after clearing
         }
     }
 }

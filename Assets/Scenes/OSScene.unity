@@ -505,6 +505,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1597569120}
+  - {fileID: 1705914069}
   m_Father: {fileID: 1465893618}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
@@ -525,18 +526,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bootLinePrefab: {fileID: 795609843997231242, guid: af3f1c12388e15048893b30b10f640c7, type: 3}
-  blankLinePrefab: {fileID: 795609843997231242, guid: 8064688d920061849b41250532b632cc, type: 3}
   bootLineContainer: {fileID: 12077789}
+  bootLinePool: {fileID: 1705914070}
   scrollRect: {fileID: 1597569121}
-  lineDelay: 0.2
-  charDelay: 0.01
+  lineDelay: 0.042
+  charDelay: 0.006
   bootTextFilePaths:
   - BootSequences/boot_bios
   - BootSequences/boot_kernel
   - BootSequences/boot_ai
   - BootSequences/boot_complete
-  glitchChance: 0.12
-  minGlitchLines: 2
+  glitchChance: 0.08
+  minGlitchLines: 1
 --- !u!1 &1465893614
 GameObject:
   m_ObjectHideFlags: 0
@@ -746,6 +747,56 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1597569119}
   m_CullTransparentMesh: 1
+--- !u!1 &1705914068
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1705914069}
+  - component: {fileID: 1705914070}
+  m_Layer: 5
+  m_Name: BootLinePool
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1705914069
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1705914068}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 620108270}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1705914070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1705914068}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86809b35a0522d445b9281ecd70aac34, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bootLinePrefab: {fileID: 795609843997231242, guid: af3f1c12388e15048893b30b10f640c7, type: 3}
+  initialPoolSize: 50
 --- !u!1 &1969537663
 GameObject:
   m_ObjectHideFlags: 0

@@ -52,9 +52,12 @@ MonoBehaviour:
   textComponent: {fileID: 7059094493825305398}
   glitchColor: {r: 1, g: 0.5019608, b: 0.5289798, a: 1}
   glitchChars: '#$%&@*+=<>?/\'
-  glitchCharChance: 0.15
-  backtrackChance: 0.05
+  glitchCharChance: 0.12
+  backtrackChance: 0.06
   enableBacktrack: 1
+  fadeDuration: 0.2
+  cursorChar: _
+  cursorBlinkInterval: 0.4
 --- !u!1 &7860249323633535991
 GameObject:
   m_ObjectHideFlags: 0
@@ -120,7 +123,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: New Text
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d500d017e2e07e84ba83a46792d1c419, type: 2}
   m_sharedMaterial: {fileID: 3750297660465451383, guid: d500d017e2e07e84ba83a46792d1c419, type: 2}
