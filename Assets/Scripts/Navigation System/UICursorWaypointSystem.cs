@@ -17,7 +17,6 @@ namespace SLC.SpaceHorror
 
         [Header("Settings")]
         public float removeDistance = 20f;
-
         public bool IsInteracting { get; set; }
 
         private class WaypointData
@@ -49,7 +48,6 @@ namespace SLC.SpaceHorror
             }
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.C)) ClearAllWaypoints();
-            if (UnityEngine.Input.GetKeyDown(KeyCode.Backspace)) RemoveLastWaypoint();
 
             HighlightClosestWaypoint(cursorLocal, removeDistance);
             UpdateUILineRenderer();
@@ -117,12 +115,6 @@ namespace SLC.SpaceHorror
             waypoints.RemoveAt(index);
             RenumberWaypoints();
             uiLineDirty = true;
-        }
-
-        private void RemoveLastWaypoint()
-        {
-            if (waypoints.Count > 0)
-                RemoveWaypointAt(waypoints.Count - 1);
         }
 
         private void ClearAllWaypoints()

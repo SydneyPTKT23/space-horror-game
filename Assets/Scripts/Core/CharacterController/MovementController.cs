@@ -28,8 +28,8 @@ namespace SLC.SpaceHorror.Core
         [SerializeField] private float smoothVelocitySpeed = 10f;
 
         [Header("Debug (Read-Only)")]
-        [SerializeField] private Vector2 m_inputVector;
-        [SerializeField] private Vector2 m_smoothInputVector;
+        [SerializeField] private Vector2 inputVector;
+        [SerializeField] private Vector2 smoothInputVector;
         [SerializeField] private Vector3 m_finalMoveVector;
         [SerializeField] private float m_currentSpeed;
         [SerializeField] private float m_smoothCurrentSpeed;
@@ -37,9 +37,10 @@ namespace SLC.SpaceHorror.Core
 
         private bool movementEnabled = true;
 
-        private CharacterController m_characterController;
+        private CharacterController characterController;
+        private CameraController cameraController;
         private Health m_health;
-        private RaycastHit m_hitInfo;
+        private RaycastHit hitInfo;
 
         private float m_finalRayLength;
         private readonly float killHeight = -50f;
@@ -48,12 +49,13 @@ namespace SLC.SpaceHorror.Core
 
         private void Awake()
         {
-            m_characterController = GetComponent<CharacterController>();
-            m_health = GetComponent<Health>();
+            characterController = GetComponent<CharacterController>();
+            cameraController = GetComponentInChildren<CameraController>();
 
+            m_health = GetComponent<Health>();
             m_health.OnDie += OnDie;
 
-            m_finalRayLength = rayLength + Mathf.Abs(m_characterController.center.y);
+            m_finalRayLength = rayLength + Mathf.Abs(characterController.center.y);
         }
 
         private void Update()
@@ -78,7 +80,7 @@ namespace SLC.SpaceHorror.Core
         {
             if (inputReader != null)
             {
-                m_inputVector = inputReader.InputVector;
+                inputVector = inputReader.InputVector;
                 if (inputReader.JumpPressedThisFrame)
                 {
                     HandleJump();
@@ -88,7 +90,7 @@ namespace SLC.SpaceHorror.Core
             else
             {
                 // Fallback: zero input
-                m_inputVector = Vector2.zero;
+                inputVector = Vector2.zero;
             }
         }
 
@@ -102,8 +104,8 @@ namespace SLC.SpaceHorror.Core
 
         private void CheckIfGrounded()
         {
-            Vector3 origin = transform.position + m_characterController.center;
-            m_isGrounded = Physics.SphereCast(origin, raySphereRadius, Vector3.down, out m_hitInfo, m_finalRayLength, groundLayer);
+            Vector3 origin = transform.position + characterController.center;
+            m_isGrounded = Physics.SphereCast(origin, raySphereRadius, Vector3.down, out hitInfo, m_finalRayLength, groundLayer);
 
 #if UNITY_EDITOR
             Debug.DrawRay(origin, Vector3.down * m_finalRayLength, Color.red);
@@ -114,7 +116,7 @@ namespace SLC.SpaceHorror.Core
         {
             float delta = Time.deltaTime;
 
-            m_smoothInputVector = Vector2.Lerp(m_smoothInputVector, m_inputVector, delta * smoothInputSpeed);
+            smoothInputVector = Vector2.Lerp(smoothInputVector, inputVector, delta * smoothInputSpeed);
             m_smoothCurrentSpeed = Mathf.Lerp(m_smoothCurrentSpeed, m_currentSpeed, delta * smoothVelocitySpeed);
         }
 
@@ -128,9 +130,9 @@ namespace SLC.SpaceHorror.Core
 
             m_currentSpeed = moveSpeed;
 
-            if (m_smoothInputVector.y < 0)
+            if (smoothInputVector.y < 0)
                 m_currentSpeed *= moveBackwardsSpeedPercent;
-            else if (Mathf.Abs(m_smoothInputVector.x) > 0 && Mathf.Approximately(m_smoothInputVector.y, 0f))
+            else if (Mathf.Abs(smoothInputVector.x) > 0 && Mathf.Approximately(smoothInputVector.y, 0f))
                 m_currentSpeed *= moveSideSpeedPercent;
         }
 
@@ -139,8 +141,8 @@ namespace SLC.SpaceHorror.Core
             if (!m_isGrounded)
                 return;
 
-            Vector3 moveDir = Vector3.ProjectOnPlane((transform.forward * m_smoothInputVector.y) + (transform.right * 
-                m_smoothInputVector.x), m_hitInfo.normal).normalized;
+            Vector3 moveDir = Vector3.ProjectOnPlane((transform.forward * smoothInputVector.y) + (transform.right * 
+                smoothInputVector.x), hitInfo.normal).normalized;
 
             m_finalMoveVector.x = moveDir.x * m_smoothCurrentSpeed;
             m_finalMoveVector.z = moveDir.z * m_smoothCurrentSpeed;
@@ -168,7 +170,7 @@ namespace SLC.SpaceHorror.Core
 
         private void ApplyMovement()
         {
-            m_characterController.Move(m_finalMoveVector * Time.deltaTime);
+            _ = characterController.Move(m_finalMoveVector * Time.deltaTime);
         }
 
         private void OnDie()
@@ -179,6 +181,11 @@ namespace SLC.SpaceHorror.Core
         public void SetMovementEnabled(bool enabled)
         {
             movementEnabled = enabled;
+
+            if (cameraController != null)
+            {
+                cameraController.enabled = enabled;
+            }
         }
     }
 }

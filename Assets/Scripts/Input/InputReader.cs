@@ -7,6 +7,14 @@ namespace SLC.SpaceHorror.Input
     [CreateAssetMenu(fileName = "InputReader", menuName = "Input/InputReader")]
     public class InputReader : ScriptableObject, Controls.IPlayerActions, Controls.IUIActions
     {
+        public enum InputContext
+        {
+            Ship,
+            Monitor
+        }
+
+        public InputContext CurrentContext { get; private set; }
+
         [Header("Player Input States")]
         private Vector2 inputVector;
         public Vector2 InputVector => inputVector;
@@ -46,6 +54,23 @@ namespace SLC.SpaceHorror.Input
         public UnityEvent SubmitEvent = new();
         public UnityEvent CancelEvent = new();
 
+        [Header("UI Input States")]
+        private Vector2 navigateInput;
+        public Vector2 NavigateInput => navigateInput;
+
+        private Vector2 pointerPosition;
+        public Vector2 PointerPosition => pointerPosition;
+
+        private Vector2 scrollDelta;
+        public Vector2 ScrollDelta => scrollDelta;
+
+        public bool ClickPressedThisFrame { get; private set; }
+        public bool RightClickPressedThisFrame { get; private set; }
+
+        public UnityEvent ClickEvent = new();
+        public UnityEvent RightClickEvent = new();
+        public UnityEvent ScrollEvent = new();
+
         private Controls controls;
 
         public void Initialize()
@@ -83,6 +108,9 @@ namespace SLC.SpaceHorror.Input
             InteractReleasedThisFrame = false;
 
             PausePressedThisFrame = false;
+
+            ClickPressedThisFrame = false;
+            RightClickPressedThisFrame = false;
         }
 
         public void ResetValues()
@@ -104,6 +132,13 @@ namespace SLC.SpaceHorror.Input
             InteractHeld = false;
 
             PausePressedThisFrame = false;
+
+            navigateInput = Vector2.zero;
+            pointerPosition = Vector2.zero;
+            scrollDelta = Vector2.zero;
+
+            ClickPressedThisFrame = false;
+            RightClickPressedThisFrame = false;
         }
 
         #region Player Actions
@@ -198,7 +233,10 @@ namespace SLC.SpaceHorror.Input
 
         public void OnNavigate(InputAction.CallbackContext context)
         {
-            // Implement UI navigation logic if needed
+            if (context.phase == InputActionPhase.Canceled)
+                navigateInput = Vector2.zero;
+            else
+                navigateInput = context.ReadValue<Vector2>();
         }
 
         public void OnSubmit(InputAction.CallbackContext context)
@@ -213,11 +251,38 @@ namespace SLC.SpaceHorror.Input
                 CancelEvent?.Invoke();
         }
 
-        public void OnPoint(InputAction.CallbackContext context) { }
-        public void OnClick(InputAction.CallbackContext context) { }
-        public void OnRightClick(InputAction.CallbackContext context) { }
-        public void OnScrollWheel(InputAction.CallbackContext context) { }
+        public void OnPoint(InputAction.CallbackContext context)
+        {
+            if (context.phase == InputActionPhase.Canceled)
+                pointerPosition = Vector2.zero;
+            else
+                pointerPosition = context.ReadValue<Vector2>();
+        }
 
+        public void OnClick(InputAction.CallbackContext context)
+        {
+            if (context.performed)
+            {
+                ClickPressedThisFrame = true;
+                ClickEvent?.Invoke();
+            }
+        }
+
+        public void OnRightClick(InputAction.CallbackContext context)
+        {
+            if (context.performed)
+            {
+                RightClickPressedThisFrame = true;
+                RightClickEvent?.Invoke();
+            }
+        }
+
+        public void OnScrollWheel(InputAction.CallbackContext context)
+        {
+            scrollDelta = context.ReadValue<Vector2>();
+            if (scrollDelta != Vector2.zero)
+                ScrollEvent?.Invoke();
+        }
         #endregion
     }
 }

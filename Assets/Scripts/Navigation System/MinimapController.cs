@@ -1,4 +1,5 @@
 using SLC.SpaceHorror;
+using SLC.SpaceHorror.Input;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -6,6 +7,9 @@ namespace SLC
 {
     public class MinimapController : MonoBehaviour, IScrollHandler, IPointerClickHandler
     {
+        [Header("Data")]
+        [SerializeField] private InputReader inputReader;
+
         [Header("References")]
         public RectTransform mapContent;
         public RectTransform containerRect;
@@ -32,9 +36,9 @@ namespace SLC
 
         private void Update()
         {
-            if (!IsInteracting) return;
+            if (!IsInteracting || inputReader == null) return;
 
-            Vector2 input = new(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+            Vector2 input = inputReader.NavigateInput;
             if (input != Vector2.zero)
                 ApplyPanInput(input.normalized);
         }

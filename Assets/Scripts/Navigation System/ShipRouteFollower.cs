@@ -25,17 +25,11 @@ namespace SLC.SpaceHorror
         {
             if (waypointSystem == null) return;
 
-            if (UnityEngine.Input.GetKeyDown(KeyCode.R))
-                StartFollowingRoute();
-
-            if (UnityEngine.Input.GetKeyDown(KeyCode.P))
-                TogglePause();
-
             if (isFollowingRoute && !isPaused)
                 FollowRoute();
         }
 
-        private void StartFollowingRoute()
+        public void StartFollowingRoute()
         {
             IReadOnlyList<Vector3> waypoints = waypointSystem.GetWorldWaypoints();
             if (waypoints == null || waypoints.Count == 0)
@@ -52,7 +46,7 @@ namespace SLC.SpaceHorror
             isPaused = false;
         }
 
-        private void TogglePause()
+        public void TogglePause()
         {
             if (isFollowingRoute)
                 isPaused = !isPaused;

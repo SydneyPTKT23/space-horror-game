@@ -15,6 +15,10 @@ namespace SLC.SpaceHorror.Input
         public UnityEvent OnUISubmit;
         public UnityEvent OnUICancel;
 
+        public UnityEvent OnClickPressed;
+        public UnityEvent OnRightClickPressed;
+        public UnityEvent OnScroll;
+
         private void Awake()
         {
             if (inputReader != null)
@@ -27,6 +31,10 @@ namespace SLC.SpaceHorror.Input
                 inputReader.PauseEvent.AddListener(() => OnPausePressed?.Invoke());
                 inputReader.SubmitEvent.AddListener(() => OnUISubmit?.Invoke());
                 inputReader.CancelEvent.AddListener(() => OnUICancel?.Invoke());
+
+                inputReader.ClickEvent.AddListener(() => OnClickPressed?.Invoke());
+                inputReader.RightClickEvent.AddListener(() => OnRightClickPressed?.Invoke());
+                inputReader.ScrollEvent.AddListener(() => OnScroll?.Invoke());
             }
         }
 

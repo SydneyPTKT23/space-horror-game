@@ -4,19 +4,13 @@ using UnityEngine.InputSystem;
 
 namespace SLC.SpaceHorror.Core
 {
-    public class NavigationMonitorManager : MonoBehaviour
+    public class NavigationMonitorManager : MonoBehaviour, IMonitorInteractable
     {
         [Header("References")]
-        [SerializeField] private MonitorViewController viewController;
         [SerializeField] private MinimapController minimap;
         [SerializeField] private UICursorWaypointSystem waypointSystem;
 
         public bool IsInteracting { get; private set; } = false;
-
-        public void Initialize(InputManager inputManager)
-        {
-            // You can add initialization logic here if needed in future
-        }
 
         private void Update()
         {
@@ -31,7 +25,6 @@ namespace SLC.SpaceHorror.Core
             if (IsInteracting) return;
 
             IsInteracting = true;
-            viewController?.BeginInteraction();
 
             if (minimap != null) minimap.IsInteracting = true;
             if (waypointSystem != null) waypointSystem.IsInteracting = true;
@@ -42,7 +35,6 @@ namespace SLC.SpaceHorror.Core
             if (!IsInteracting) return;
 
             IsInteracting = false;
-            viewController?.EndInteraction();
 
             if (minimap != null) minimap.IsInteracting = false;
             if (waypointSystem != null) waypointSystem.IsInteracting = false;
