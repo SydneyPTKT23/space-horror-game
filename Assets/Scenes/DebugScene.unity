@@ -405,6 +405,21 @@ MonoBehaviour:
   OnScroll:
     m_PersistentCalls:
       m_Calls: []
+  OnMonitorTogglePressed:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMonitorNextPressed:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMonitorPreviousPressed:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMonitorActionPressed:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMonitorResetPressed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &162968776
 Transform:
   m_ObjectHideFlags: 0
@@ -5687,6 +5702,7 @@ GameObject:
   - component: {fileID: 389263310543197322}
   - component: {fileID: 8997341880856118538}
   - component: {fileID: 5860348245407154961}
+  - component: {fileID: 8997341880856118539}
   - component: {fileID: 3470584221950092663}
   m_Layer: 5
   m_Name: Monitor1_Canvas
@@ -6132,12 +6148,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aca16a94c2827ba41a896d468611ae5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  inputReader: {fileID: 11400000, guid: 85e59f0a0ce535b4ca399cd6f9b22656, type: 2}
   cursor: {fileID: 1086632357610443764}
   minimapController: {fileID: 7784884617255173195}
   waypointPrefab: {fileID: 5617191172446374763, guid: 2901e1bceee906342bf142a007cdbdf9, type: 3}
   worldWaypointPrefab: {fileID: 4657901478277083929, guid: 3834b3a0d4a51514c9f99cd00e343b9c, type: 3}
   uiLineRenderer: {fileID: 2458734742158215044}
+  buttonNavigationHandler: {fileID: 8997341880856118539}
   removeDistance: 20
+  currentInputMode: 0
 --- !u!114 &4468091329616187141
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6752,6 +6771,19 @@ MonoBehaviour:
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
   m_PresetInfoIsWorld: 1
+--- !u!114 &8997341880856118539
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 709883927478127626}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6e38dff7b40de74ebea9b23cfff066b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  firstSelectedButton: {fileID: 450999300}
 --- !u!1 &9087377291878718063
 GameObject:
   m_ObjectHideFlags: 0

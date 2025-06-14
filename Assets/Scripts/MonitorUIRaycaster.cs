@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 public class MonitorUIRaycaster : MonoBehaviour
 {
@@ -19,12 +18,12 @@ public class MonitorUIRaycaster : MonoBehaviour
                 if (hit.collider.gameObject == gameObject)
                 {
                     Vector2 localHit = GetLocalHit(hit.textureCoord);
-                    PointerEventData pointerData = new PointerEventData(EventSystem.current)
+                    PointerEventData pointerData = new(EventSystem.current)
                     {
                         position = localHit
                     };
 
-                    List<RaycastResult> results = new List<RaycastResult>();
+                    List<RaycastResult> results = new();
                     EventSystem.current.RaycastAll(pointerData, results);
 
                     foreach (RaycastResult result in results)

@@ -1,5 +1,6 @@
 using UnityEngine;
 using SLC.SpaceHorror.Input;
+using UnityEngine.InputSystem;
 
 namespace SLC.SpaceHorror.Core
 {
@@ -36,6 +37,14 @@ namespace SLC.SpaceHorror.Core
                 return;
 
             UpdateCameraPositionAndRotation();
+        }
+
+        private void OnCancel()
+        {
+            if (isInteracting)
+            {
+                EndInteraction();
+            }
         }
 
         private void UpdateCameraPositionAndRotation()
@@ -88,11 +97,15 @@ namespace SLC.SpaceHorror.Core
             isInteracting = true;
             monitorHandler.EnterInteraction();
 
+            if (inputReader != null)
+                inputReader.CancelEvent.AddListener(OnCancel);
+
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
 
             inputReader.DisablePlayerInput();
-            inputReader.EnableUIInput();
+            inputReader.DisableUIInput();
+            inputReader.EnableMonitorInput();
 
             if (playerMovement != null) playerMovement.SetMovementEnabled(false);
 
@@ -110,10 +123,13 @@ namespace SLC.SpaceHorror.Core
             isInteracting = false;
             monitorHandler.ExitInteraction();
 
+            if (inputReader != null)
+                inputReader.CancelEvent.RemoveListener(OnCancel);
+
             Cursor.visible = false;
             Cursor.lockState = CursorLockMode.Locked;
 
-            inputReader.DisableUIInput();
+            inputReader.DisableMonitorInput();
             inputReader.EnablePlayerInput();
 
             if (playerMovement != null) playerMovement.SetMovementEnabled(true);

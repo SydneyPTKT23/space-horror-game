@@ -1,6 +1,8 @@
+using SLC.SpaceHorror.Input;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.UI.Extensions;
 
@@ -8,6 +10,15 @@ namespace SLC.SpaceHorror
 {
     public class UICursorWaypointSystem : MonoBehaviour
     {
+        public enum InputMode
+        {
+            MinimapControl,
+            UIButtonControl
+        }
+
+        [Header("Data")]
+        [SerializeField] private InputReader inputReader;
+
         [Header("References")]
         public RectTransform cursor;
         public MinimapController minimapController;
@@ -15,9 +26,15 @@ namespace SLC.SpaceHorror
         public GameObject worldWaypointPrefab;
         public UILineRenderer uiLineRenderer;
 
+        [Header("UI Button Navigation")]
+        [SerializeField] private UI.UIButtonNavigationHandler buttonNavigationHandler;
+
         [Header("Settings")]
         public float removeDistance = 20f;
         public bool IsInteracting { get; set; }
+
+        public InputMode currentInputMode = InputMode.MinimapControl;
+        public InputMode CurrentInputMode => currentInputMode;
 
         private class WaypointData
         {
@@ -32,13 +49,39 @@ namespace SLC.SpaceHorror
         private readonly List<Vector3> cachedWorldPositions = new();
         private bool uiLineDirty;
 
+        private void Start()
+        {
+            SetInputMode(InputMode.MinimapControl);
+        }
+
         private void Update()
         {
-            if (!IsInteracting) return;
+            if (inputReader.MonitorTogglePressedThisFrame)
+            {
+                ToggleInputMode();
+            }
 
+            if (!IsInteracting && currentInputMode != InputMode.UIButtonControl)
+                return;
+
+            switch (currentInputMode)
+            {
+                case InputMode.MinimapControl:
+                    UpdateMinimapControl();
+                    break;
+
+                case InputMode.UIButtonControl:
+                    // No need to handle button navigation here;
+                    // handled inside UIButtonNavigationHandler now
+                    break;
+            }
+        }
+
+        private void UpdateMinimapControl()
+        {
             Vector2 cursorLocal = GetCursorLocalMapPosition();
 
-            if (UnityEngine.Input.GetKeyDown(KeyCode.Space))
+            if (inputReader.MonitorActionPressedThisFrame)
             {
                 int closeIndex = FindClosestWaypointIndex(cursorLocal, removeDistance);
                 if (closeIndex >= 0)
@@ -47,11 +90,38 @@ namespace SLC.SpaceHorror
                     PlaceWaypoint(cursorLocal);
             }
 
-            if (UnityEngine.Input.GetKeyDown(KeyCode.C)) ClearAllWaypoints();
-
             HighlightClosestWaypoint(cursorLocal, removeDistance);
             UpdateUILineRenderer();
             UpdateWorldWaypointPositions();
+        }
+
+        public void SetInputMode(InputMode mode)
+        {
+            currentInputMode = mode;
+            IsInteracting = (mode == InputMode.MinimapControl);
+            if (minimapController != null)
+                minimapController.IsInteracting = IsInteracting;
+
+            if (buttonNavigationHandler != null)
+                buttonNavigationHandler.enabled = (mode == InputMode.UIButtonControl);
+
+            if (mode != InputMode.UIButtonControl && EventSystem.current != null)
+            {
+                if (EventSystem.current != null)
+                    EventSystem.current.SetSelectedGameObject(null);
+            }
+        }
+
+        private void ToggleInputMode()
+        {
+            if (currentInputMode == InputMode.MinimapControl)
+            {
+                SetInputMode(InputMode.UIButtonControl);
+            }
+            else
+            {
+                SetInputMode(InputMode.MinimapControl);
+            }
         }
 
         private Vector2 GetCursorLocalMapPosition()
