@@ -1,13 +1,15 @@
 using UnityEngine;
-using SLC.SpaceHorror.Input;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
+using SLC.SpaceHorror.Input;
+using System.Collections;
 
 namespace SLC.SpaceHorror.Core
 {
     public class MonitorInteractable : InteractableBase
     {
         [Header("Monitor Interaction")]
-        [SerializeField] private NavigationMonitorManager monitorHandler;
+        [SerializeField] private MonoBehaviour monitorHandler;
         [SerializeField] private InputReader inputReader;
 
         [Header("Camera & Movement")]
@@ -31,6 +33,14 @@ namespace SLC.SpaceHorror.Core
         private Vector3 targetPosition;
         private Quaternion targetRotation;
 
+        private IMonitorHandler monitor;
+        private GameObject lastSelectedUIElement;
+
+        private void Awake()
+        {
+            monitor = monitorHandler as IMonitorHandler;
+        }
+
         private void Update()
         {
             if (!isInteracting || playerCamera == null || cameraViewPoint == null)
@@ -42,39 +52,39 @@ namespace SLC.SpaceHorror.Core
         private void OnCancel()
         {
             if (isInteracting)
-            {
                 EndInteraction();
-            }
         }
 
         private void UpdateCameraPositionAndRotation()
         {
-            // Smoothly lerp camera position to target point
+            float step = Time.deltaTime * lerpSpeed;
+
             playerCamera.transform.position = Vector3.Lerp(
                 playerCamera.transform.position,
                 targetPosition,
-                Time.deltaTime * lerpSpeed);
+                step
+            );
 
-            // Calculate cursor offset relative to screen center with weight
-            Vector2 mousePos = UnityEngine.Input.mousePosition;
             Vector2 screenCenter = new(Screen.width * 0.5f, Screen.height * 0.5f);
+            Vector2 mousePos = Mouse.current != null
+                ? Mouse.current.position.ReadValue()
+                : screenCenter;
+
             Vector2 targetPoint = Vector2.Lerp(mousePos, screenCenter, cursorToCenterWeight);
 
             Vector2 normalized = new(
-                (targetPoint.x - screenCenter.x) / (screenCenter.x),
-                (targetPoint.y - screenCenter.y) / (screenCenter.y));
+                (targetPoint.x - screenCenter.x) / screenCenter.x,
+                (targetPoint.y - screenCenter.y) / screenCenter.y
+            );
 
             normalized = Vector2.ClampMagnitude(normalized, 1f);
 
-            // Calculate rotation target angles based on cursor position
             float targetYaw = normalized.x * maxParallaxAngle;
             float targetPitch = -normalized.y * maxParallaxAngle;
 
-            // Smoothly interpolate current rotation towards target angles
-            currentRotation.x = Mathf.Lerp(currentRotation.x, targetPitch, Time.deltaTime * lerpSpeed);
-            currentRotation.y = Mathf.Lerp(currentRotation.y, targetYaw, Time.deltaTime * lerpSpeed);
+            currentRotation.x = Mathf.Lerp(currentRotation.x, targetPitch, step);
+            currentRotation.y = Mathf.Lerp(currentRotation.y, targetYaw, step);
 
-            // Apply the rotation offset to the camera's original rotation
             Quaternion offsetRotation = Quaternion.Euler(currentRotation.x, currentRotation.y, 0f);
             playerCamera.transform.rotation = targetRotation * offsetRotation;
         }
@@ -95,19 +105,16 @@ namespace SLC.SpaceHorror.Core
         private void BeginInteraction()
         {
             isInteracting = true;
-            monitorHandler.EnterInteraction();
 
-            if (inputReader != null)
-                inputReader.CancelEvent.AddListener(OnCancel);
+            monitor?.EnterInteraction();
 
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
-
+            inputReader.CancelEvent.AddListener(OnCancel);
             inputReader.DisablePlayerInput();
             inputReader.DisableUIInput();
             inputReader.EnableMonitorInput();
 
-            if (playerMovement != null) playerMovement.SetMovementEnabled(false);
+            if (playerMovement != null)
+                playerMovement.SetMovementEnabled(false);
 
             if (playerCamera != null && cameraViewPoint != null)
             {
@@ -116,12 +123,16 @@ namespace SLC.SpaceHorror.Core
                 targetPosition = cameraViewPoint.position;
                 targetRotation = cameraViewPoint.rotation;
             }
+
+            if (IsInButtonMode() && lastSelectedUIElement != null)
+                StartCoroutine(RestoreLastSelectedNextFrame());
         }
 
         private void EndInteraction()
         {
             isInteracting = false;
-            monitorHandler.ExitInteraction();
+
+            monitor?.ExitInteraction();
 
             if (inputReader != null)
                 inputReader.CancelEvent.RemoveListener(OnCancel);
@@ -131,13 +142,36 @@ namespace SLC.SpaceHorror.Core
 
             inputReader.DisableMonitorInput();
             inputReader.EnablePlayerInput();
+            inputReader.EnableUIInput();
 
-            if (playerMovement != null) playerMovement.SetMovementEnabled(true);
+            if (playerMovement != null)
+                playerMovement.SetMovementEnabled(true);
 
             if (playerCamera != null)
                 playerCamera.transform.SetPositionAndRotation(originalCamPosition, originalCamRotation);
 
             currentRotation = Vector2.zero;
+
+            if (IsInButtonMode())
+            {
+                GameObject current = EventSystem.current?.currentSelectedGameObject;
+                if (current != null && current.activeInHierarchy)
+                    lastSelectedUIElement = current;
+            }
+        }
+
+        private IEnumerator RestoreLastSelectedNextFrame()
+        {
+            yield return null;
+            if (EventSystem.current != null && lastSelectedUIElement != null)
+            {
+                EventSystem.current.SetSelectedGameObject(lastSelectedUIElement);
+            }
+        }
+
+        private bool IsInButtonMode()
+        {
+            return monitor != null && monitor.IsInButtonMode;
         }
     }
 }

@@ -1859,7 +1859,6 @@ GameObject:
   - component: {fileID: 670940539}
   - component: {fileID: 670940543}
   - component: {fileID: 670940545}
-  - component: {fileID: 670940546}
   m_Layer: 0
   m_Name: Monitor
   m_TagString: Untagged
@@ -1994,21 +1993,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   minimap: {fileID: 7784884617255173195}
   waypointSystem: {fileID: 3830977207309004761}
---- !u!114 &670940546
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 670940538}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cf23585f2c8991f4eaec63327e04caea, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  uiCamera: {fileID: 1590010588}
-  uiCanvas: {fileID: 389263310543197322}
-  renderTexture: {fileID: 8400000, guid: fda3c47c55493254a92e7ab40c04c6e2, type: 2}
+  defaultInputMode: 0
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -6783,6 +6768,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6e38dff7b40de74ebea9b23cfff066b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  inputReader: {fileID: 11400000, guid: 85e59f0a0ce535b4ca399cd6f9b22656, type: 2}
   firstSelectedButton: {fileID: 450999300}
 --- !u!1 &9087377291878718063
 GameObject:

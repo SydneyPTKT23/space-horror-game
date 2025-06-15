@@ -1,56 +1,65 @@
-using SLC.SpaceHorror.Input;
+using SLC.SpaceHorror.Core;
+using SLC.SpaceHorror;
+using SLC;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
-namespace SLC.SpaceHorror.Core
+public class NavigationMonitorManager : MonoBehaviour, IMonitorHandler
 {
-    public class NavigationMonitorManager : MonoBehaviour, IMonitorInteractable
+    [Header("References")]
+    [SerializeField] private MinimapController minimap;
+    [SerializeField] private UICursorWaypointSystem waypointSystem;
+    [SerializeField] private UICursorWaypointSystem.InputMode defaultInputMode = UICursorWaypointSystem.InputMode.MinimapControl;
+
+    public bool IsInteracting { get; private set; } = false;
+    public bool IsInButtonMode => CurrentInputMode == UICursorWaypointSystem.InputMode.UIButtonControl;
+
+    public UICursorWaypointSystem.InputMode CurrentInputMode { get; private set; }
+    private bool hasInteractedBefore = false;
+
+    public void EnterInteraction()
     {
-        [Header("References")]
-        [SerializeField] private MinimapController minimap;
-        [SerializeField] private UICursorWaypointSystem waypointSystem;
+        if (IsInteracting) return;
 
-        public bool IsInteracting { get; private set; } = false;
-        private UICursorWaypointSystem.InputMode lastInputMode = UICursorWaypointSystem.InputMode.MinimapControl;
+        IsInteracting = true;
 
-        public void EnterInteraction()
+        // Use the last mode or default
+        UICursorWaypointSystem.InputMode inputModeToUse = hasInteractedBefore ? CurrentInputMode : defaultInputMode;
+
+        if (waypointSystem != null)
         {
-            if (IsInteracting) return;
-
-            IsInteracting = true;
-
-            // Restore last input mode to the waypoint system
-            if (waypointSystem != null)
-            {
-                waypointSystem.SetInputMode(lastInputMode);
-            }
-            else
-            {
-                // fallback
-                if (minimap != null) minimap.IsInteracting = true;
-            }
+            waypointSystem.SetInputMode(inputModeToUse);
         }
 
-        public void ExitInteraction()
+        if (minimap != null)
         {
-            if (!IsInteracting) return;
-
-            IsInteracting = false;
-
-            if (waypointSystem != null)
-            {
-                // Save current mode before exiting
-                lastInputMode = waypointSystem.CurrentInputMode;
-
-                // Disable interaction on both systems
-                waypointSystem.IsInteracting = false;
-                if (minimap != null)
-                    minimap.IsInteracting = false;
-            }
-            else
-            {
-                if (minimap != null) minimap.IsInteracting = false;
-            }
+            minimap.IsInteracting = inputModeToUse == UICursorWaypointSystem.InputMode.MinimapControl;
         }
+
+        hasInteractedBefore = true;
+    }
+
+    public void ExitInteraction()
+    {
+        if (!IsInteracting) return;
+
+        IsInteracting = false;
+
+        if (waypointSystem != null)
+        {
+            CurrentInputMode = waypointSystem.CurrentInputMode;
+
+            waypointSystem.SetInputMode(UICursorWaypointSystem.InputMode.UIButtonControl);
+        }
+
+        if (minimap != null)
+        {
+            minimap.IsInteracting = false;
+        }
+    }
+
+    public void ResetToDefaultView()
+    {
+        CurrentInputMode = defaultInputMode;
+        hasInteractedBefore = false;
     }
 }
