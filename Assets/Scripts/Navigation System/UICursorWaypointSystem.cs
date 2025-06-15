@@ -59,7 +59,7 @@ namespace SLC.SpaceHorror
 
         private void ToggleInputMode()
         {
-            var newMode = CurrentInputMode == InputMode.MinimapControl
+            InputMode newMode = CurrentInputMode == InputMode.MinimapControl
                 ? InputMode.UIButtonControl
                 : InputMode.MinimapControl;
 
@@ -71,7 +71,6 @@ namespace SLC.SpaceHorror
             CurrentInputMode = mode;
             IsInteracting = (mode == InputMode.MinimapControl);
 
-            cursor?.gameObject.SetActive(IsInteracting);
             if (minimapController != null)
                 minimapController.IsInteracting = IsInteracting;
 
@@ -117,12 +116,12 @@ namespace SLC.SpaceHorror
 
         private void PlaceWaypoint(Vector2 localCursorPos)
         {
-            var wpGO = Instantiate(waypointPrefab, minimapController.mapContent);
-            var rect = wpGO.GetComponent<RectTransform>();
+            GameObject wpGO = Instantiate(waypointPrefab, minimapController.mapContent);
+            RectTransform rect = wpGO.GetComponent<RectTransform>();
             rect.anchoredPosition = localCursorPos;
 
             Vector3 worldPos = minimapController.MapToWorld(localCursorPos);
-            var worldGO = worldWaypointPrefab != null
+            GameObject worldGO = worldWaypointPrefab != null
                 ? Instantiate(worldWaypointPrefab, worldPos, Quaternion.identity)
                 : null;
 
@@ -143,7 +142,7 @@ namespace SLC.SpaceHorror
         {
             float maxDistSqr = maxDistance * maxDistance;
 
-            foreach (var wp in waypoints)
+            foreach (WaypointData wp in waypoints)
             {
                 if (wp.image == null) continue;
 
@@ -174,7 +173,7 @@ namespace SLC.SpaceHorror
         {
             if (index < 0 || index >= waypoints.Count) return;
 
-            var wp = waypoints[index];
+            WaypointData wp = waypoints[index];
             if (wp.uiRect != null)
                 Destroy(wp.uiRect.gameObject);
             if (wp.worldObject != null)
@@ -204,7 +203,7 @@ namespace SLC.SpaceHorror
             }
             else
             {
-                var points = new Vector2[waypoints.Count];
+                Vector2[] points = new Vector2[waypoints.Count];
                 for (int i = 0; i < waypoints.Count; i++)
                     points[i] = waypoints[i].uiRect.anchoredPosition;
 
@@ -217,11 +216,11 @@ namespace SLC.SpaceHorror
 
         private void UpdateWorldWaypointPositions()
         {
-            foreach (var wp in waypoints)
+            foreach (WaypointData wp in waypoints)
             {
                 if (wp.worldObject == null) continue;
 
-                var newPos = minimapController.MapToWorld(wp.uiRect.anchoredPosition);
+                Vector3 newPos = minimapController.MapToWorld(wp.uiRect.anchoredPosition);
                 wp.worldObject.transform.position = newPos;
                 wp.worldPosition = newPos;
             }
@@ -236,7 +235,6 @@ namespace SLC.SpaceHorror
             return cachedWorldPositions;
         }
 
-        // Optional: Call this method when resetting the nav system
         public void ClearAllWaypoints()
         {
             foreach (var wp in waypoints)

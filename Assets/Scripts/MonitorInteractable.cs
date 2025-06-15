@@ -98,8 +98,6 @@ namespace SLC.SpaceHorror.Core
 
             if (!isInteracting)
                 BeginInteraction();
-            else
-                EndInteraction();
         }
 
         private void BeginInteraction()
@@ -154,7 +152,7 @@ namespace SLC.SpaceHorror.Core
 
             if (IsInButtonMode())
             {
-                GameObject current = EventSystem.current?.currentSelectedGameObject;
+                GameObject current = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
                 if (current != null && current.activeInHierarchy)
                     lastSelectedUIElement = current;
             }

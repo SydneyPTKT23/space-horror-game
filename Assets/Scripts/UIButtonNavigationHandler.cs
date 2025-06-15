@@ -72,8 +72,7 @@ namespace SLC.SpaceHorror.UI
             Vector2 nav = inputReader.NavigateInput;
             if (nav == Vector2.zero) return;
 
-            Selectable current = virtualSelectedButton?.GetComponent<Selectable>();
-            if (current == null) return;
+            if (!virtualSelectedButton.TryGetComponent(out Selectable current)) return;
 
             Selectable next = null;
 
@@ -91,10 +90,9 @@ namespace SLC.SpaceHorror.UI
 
         private void UpdateSelectionHighlight()
         {
-            foreach (var btn in cachedButtons)
+            foreach (Button btn in cachedButtons)
             {
-                var img = btn.GetComponent<Image>();
-                if (img != null)
+                if (btn.TryGetComponent(out Image img))
                     img.color = (btn.gameObject == virtualSelectedButton) ? highlightButtonColor : normalButtonColor;
             }
 
@@ -105,16 +103,15 @@ namespace SLC.SpaceHorror.UI
         {
             if (!IsActive || virtualSelectedButton == null) return;
 
-            var button = virtualSelectedButton.GetComponent<Button>();
-            button?.onClick.Invoke();
+            if (virtualSelectedButton.TryGetComponent(out Button button))
+                button.onClick.Invoke();
         }
 
         private void ClearSelection()
         {
             if (lastHighlightedButton != null)
             {
-                var img = lastHighlightedButton.GetComponent<Image>();
-                if (img != null)
+                if (lastHighlightedButton.TryGetComponent(out Image img))
                     img.color = normalButtonColor;
             }
 
@@ -122,10 +119,7 @@ namespace SLC.SpaceHorror.UI
             lastHighlightedButton = null;
         }
 
-        private void CacheButtons()
-        {
-            cachedButtons = GetComponentsInChildren<Button>(true);
-        }
+        private void CacheButtons() => cachedButtons = GetComponentsInChildren<Button>(true);
 
         public void SetVirtualSelection(GameObject buttonObj)
         {

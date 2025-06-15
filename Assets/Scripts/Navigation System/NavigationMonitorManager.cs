@@ -10,11 +10,18 @@ public class NavigationMonitorManager : MonoBehaviour, IMonitorHandler
     [SerializeField] private UICursorWaypointSystem waypointSystem;
     [SerializeField] private UICursorWaypointSystem.InputMode defaultInputMode = UICursorWaypointSystem.InputMode.MinimapControl;
 
+    private UICursorWaypointSystem.InputMode lastInputMode = UICursorWaypointSystem.InputMode.MinimapControl;
+
     public bool IsInteracting { get; private set; } = false;
     public bool IsInButtonMode => CurrentInputMode == UICursorWaypointSystem.InputMode.UIButtonControl;
 
     public UICursorWaypointSystem.InputMode CurrentInputMode { get; private set; }
-    private bool hasInteractedBefore = false;
+
+    private void Update()
+    {
+        if (IsInteracting && waypointSystem != null)
+            CurrentInputMode = waypointSystem.CurrentInputMode;
+    }
 
     public void EnterInteraction()
     {
@@ -22,20 +29,17 @@ public class NavigationMonitorManager : MonoBehaviour, IMonitorHandler
 
         IsInteracting = true;
 
-        // Use the last mode or default
-        UICursorWaypointSystem.InputMode inputModeToUse = hasInteractedBefore ? CurrentInputMode : defaultInputMode;
+        // Use last known input mode, or fall back to default if unset
+        UICursorWaypointSystem.InputMode inputModeToUse = lastInputMode;
 
         if (waypointSystem != null)
         {
             waypointSystem.SetInputMode(inputModeToUse);
+            CurrentInputMode = inputModeToUse;
         }
 
         if (minimap != null)
-        {
             minimap.IsInteracting = inputModeToUse == UICursorWaypointSystem.InputMode.MinimapControl;
-        }
-
-        hasInteractedBefore = true;
     }
 
     public void ExitInteraction()
@@ -44,22 +48,17 @@ public class NavigationMonitorManager : MonoBehaviour, IMonitorHandler
 
         IsInteracting = false;
 
+        // Save current input mode to restore it later
         if (waypointSystem != null)
-        {
-            CurrentInputMode = waypointSystem.CurrentInputMode;
-
-            waypointSystem.SetInputMode(UICursorWaypointSystem.InputMode.UIButtonControl);
-        }
+            lastInputMode = waypointSystem.CurrentInputMode;
 
         if (minimap != null)
-        {
             minimap.IsInteracting = false;
-        }
     }
 
     public void ResetToDefaultView()
     {
         CurrentInputMode = defaultInputMode;
-        hasInteractedBefore = false;
+        lastInputMode = defaultInputMode;
     }
 }

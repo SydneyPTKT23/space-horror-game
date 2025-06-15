@@ -7,5 +7,4 @@ namespace SLC
 
         bool IsInButtonMode { get; }
     }
-
 }

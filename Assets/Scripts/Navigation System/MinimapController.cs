@@ -100,7 +100,7 @@ namespace SLC
             maxY = Mathf.Max(0f, (mapContent.rect.height * currentScale.y * 0.5f) - (containerRect.rect.height * 0.5f));
         }
 
-        void AdjustCursorForZoom()
+        private void AdjustCursorForZoom()
         {
             Vector2 oldRange = (containerRect.rect.size - cursor.rect.size) * 0.5f;
             Vector2 normalizedCursorPos = new(
@@ -115,7 +115,7 @@ namespace SLC
             );
         }
 
-        void ClampMapPosition()
+        private void ClampMapPosition()
         {
             Vector2 pos = mapContent.anchoredPosition;
             pos.x = Mathf.Clamp(pos.x, -maxX, maxX);
