@@ -1,8 +1,17 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace SLC.SpaceHorror
 {
+    [System.Serializable]
+    public struct RoutePoint
+    {
+        public Vector3 position;
+        public float waitTime;
+    }
+
     public class ShipRouteFollower : MonoBehaviour
     {
         [Header("References")]
@@ -14,85 +23,87 @@ namespace SLC.SpaceHorror
         [SerializeField] private float rotationSpeed = 2.0f;
         [SerializeField] private float stoppingDistance = 0.5f;
         [SerializeField] private float decelerationDistance = 3.0f;
+        [SerializeField] private float rotationDeadZone = 2f;
 
-        private readonly List<Vector3> route = new();
-        private int currentWaypointIndex = 0;
+        private Vector3 driftVelocity;
+        [SerializeField] private float driftDampTime = 3.0f; // seconds to come to a stop
+        private float driftTimer = 0f;
+
+        [Header("Events")]
+        public UnityEvent OnRouteStarted;
+        public UnityEvent OnRoutePaused;
+        public UnityEvent OnRouteResumed;
+        public UnityEvent OnRouteStopped;
+        public UnityEvent<Vector3> OnWaypointReached;
+
+        public bool IsFollowingRoute => isFollowingRoute && !isPaused;
+
+        private readonly Queue<RoutePoint> routeQueue = new();
+        private RoutePoint? currentTarget;
         private bool isFollowingRoute = false;
         private bool isPaused = false;
         private float currentSpeed = 0f;
+        private float idleDriftPhase = 0f;
 
         private void Update()
         {
-            if (waypointSystem == null) return;
+            if (!isFollowingRoute) return;
 
-            if (isFollowingRoute && !isPaused)
-                FollowRoute();
-        }
-
-        public void StartFollowingRoute()
-        {
-            IReadOnlyList<Vector3> waypoints = waypointSystem.GetWorldWaypoints();
-            if (waypoints == null || waypoints.Count == 0)
+            if (isPaused)
             {
-                isFollowingRoute = false;
-                return;
+                SimulateDriftWhilePaused(Time.deltaTime);
             }
-
-            route.Clear();
-            route.AddRange(waypoints);
-            currentWaypointIndex = 0;
-            currentSpeed = 0f;
-            isFollowingRoute = true;
-            isPaused = false;
-        }
-
-        public void TogglePause()
-        {
-            if (isFollowingRoute)
-                isPaused = !isPaused;
-        }
-
-        private void FollowRoute()
-        {
-            if (currentWaypointIndex >= route.Count)
+            else if (currentTarget.HasValue)
+            {
+                FollowToTarget(currentTarget.Value);
+            }
+            else if (routeQueue.Count > 0)
+            {
+                currentTarget = routeQueue.Dequeue();
+            }
+            else
             {
                 StopRoute();
-                return;
             }
+        }
 
-            Vector3 currentPos = transform.position;
-            Vector3 target = route[currentWaypointIndex];
-            Vector3 toTarget = target - currentPos;
+        private void FollowToTarget(RoutePoint target)
+        {
+            Vector3 toTarget = target.position - transform.position;
             float distance = toTarget.magnitude;
 
-            if (distance < Mathf.Epsilon)
+            if (distance <= stoppingDistance)
             {
-                AdvanceToNextWaypoint();
+                OnWaypointReached?.Invoke(target.position);
+                currentTarget = null;
+                StartCoroutine(WaitAtWaypoint(target.waitTime));
                 return;
             }
 
-            float dt = Time.deltaTime;
-            Vector3 direction = toTarget / distance;
+            Vector3 direction = toTarget.normalized;
+            RotateToward(direction, Time.deltaTime);
 
-            RotateToward(direction, dt);
-            AdjustSpeed(distance, dt);
-            MoveForward(dt);
-
-            if (distance <= stoppingDistance)
-                AdvanceToNextWaypoint();
+            AdjustSpeed(distance, Time.deltaTime, direction);
+            MoveForward(Time.deltaTime);
         }
 
         private void RotateToward(Vector3 direction, float dt)
         {
             Quaternion targetRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * dt);
+            float angleDiff = Quaternion.Angle(transform.rotation, targetRotation);
+
+            if (angleDiff > rotationDeadZone)
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * dt);
         }
 
-        private void AdjustSpeed(float distance, float dt)
+        private void AdjustSpeed(float distance, float dt, Vector3 toTarget)
         {
+            float angleToTarget = Vector3.Angle(transform.forward, toTarget.normalized);
+            float angleFactor = Mathf.Clamp01(1f - angleToTarget / 90f); // reduce speed on sharp angles
+
             float targetSpeed = (distance <= decelerationDistance)
-                ? Mathf.Lerp(0f, maxSpeed, distance / decelerationDistance)
-                : maxSpeed;
+                ? Mathf.Lerp(0f, maxSpeed * angleFactor, distance / decelerationDistance)
+                : maxSpeed * angleFactor;
 
             currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * dt);
         }
@@ -102,28 +113,104 @@ namespace SLC.SpaceHorror
             transform.position += currentSpeed * dt * transform.forward;
         }
 
-        private void AdvanceToNextWaypoint()
+        private IEnumerator WaitAtWaypoint(float duration)
         {
-            currentWaypointIndex++;
+            if (duration > 0f)
+                yield return new WaitForSeconds(duration);
+        }
+
+        public void StartFollowingRoute()
+        {
+            var worldPoints = waypointSystem.GetWorldWaypoints();
+            if (worldPoints == null || worldPoints.Count == 0) return;
+
+            StopRoute();
+
+            foreach (var wp in worldPoints)
+                routeQueue.Enqueue(new RoutePoint { position = wp, waitTime = 0 });
+
+            currentTarget = null;
+            isPaused = false;
+            isFollowingRoute = true;
+            currentSpeed = 0f;
+            idleDriftPhase = 0f;
+
+            OnRouteStarted?.Invoke();
+        }
+
+        public void TogglePause()
+        {
+            if (!isFollowingRoute) return;
+
+            isPaused = !isPaused;
+
+            if (isPaused)
+            {
+                driftVelocity = transform.forward * currentSpeed;
+                driftTimer = 0f;
+                OnRoutePaused?.Invoke();
+            }
+            else
+            {
+                currentSpeed = driftVelocity.magnitude;
+                driftVelocity = Vector3.zero;
+                OnRouteResumed?.Invoke();
+            }
         }
 
         private void StopRoute()
         {
             isFollowingRoute = false;
+            isPaused = false;
+            currentTarget = null;
+            routeQueue.Clear();
             currentSpeed = 0f;
+            idleDriftPhase = 0f;
+
+            OnRouteStopped?.Invoke();
         }
 
-        public bool IsFollowingRoute => isFollowingRoute && !isPaused;
+        private void LateUpdate()
+        {
+            if (!isFollowingRoute && Mathf.Approximately(currentSpeed, 0f))
+                SimulateIdleDrift(Time.deltaTime);
+        }
+
+        private void SimulateIdleDrift(float dt)
+        {
+            idleDriftPhase += dt;
+            float amplitude = 0.02f;
+            float frequency = 0.3f;
+            transform.position += amplitude * dt * Mathf.Sin(idleDriftPhase * frequency) * transform.up;
+        }
+
+        private void SimulateDriftWhilePaused(float dt)
+        {
+            if (driftVelocity.sqrMagnitude <= 0.0001f) return;
+
+            transform.position += driftVelocity * dt;
+
+            driftTimer += dt;
+            float t = Mathf.Clamp01(driftTimer / driftDampTime);
+            driftVelocity = Vector3.Lerp(driftVelocity, Vector3.zero, t);
+        }
+
         public float GetCurrentSpeed() => currentSpeed;
 
         public float GetRemainingDistance()
         {
-            if (!isFollowingRoute || currentWaypointIndex >= route.Count)
-                return 0f;
+            float total = 0f;
 
-            float total = Vector3.Distance(transform.position, route[currentWaypointIndex]);
-            for (int i = currentWaypointIndex; i < route.Count - 1; i++)
-                total += Vector3.Distance(route[i], route[i + 1]);
+            if (currentTarget.HasValue)
+                total += Vector3.Distance(transform.position, currentTarget.Value.position);
+
+            Vector3 last = currentTarget?.position ?? transform.position;
+
+            foreach (var point in routeQueue)
+            {
+                total += Vector3.Distance(last, point.position);
+                last = point.position;
+            }
 
             return total;
         }

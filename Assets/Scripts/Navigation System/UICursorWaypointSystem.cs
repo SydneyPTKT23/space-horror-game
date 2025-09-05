@@ -229,7 +229,7 @@ namespace SLC.SpaceHorror
         public IReadOnlyList<Vector3> GetWorldWaypoints()
         {
             cachedWorldPositions.Clear();
-            foreach (var wp in waypoints)
+            foreach (WaypointData wp in waypoints)
                 cachedWorldPositions.Add(wp.worldPosition);
 
             return cachedWorldPositions;
@@ -237,7 +237,7 @@ namespace SLC.SpaceHorror
 
         public void ClearAllWaypoints()
         {
-            foreach (var wp in waypoints)
+            foreach (WaypointData wp in waypoints)
             {
                 if (wp.uiRect != null)
                     Destroy(wp.uiRect.gameObject);
@@ -246,7 +246,13 @@ namespace SLC.SpaceHorror
             }
 
             waypoints.Clear();
-            uiLineDirty = true;
+
+            // Clear UI line immediately
+            uiLineRenderer.Points = System.Array.Empty<Vector2>();
+            uiLineRenderer.SetAllDirty();
+
+            uiLineDirty = false;
         }
+
     }
 }

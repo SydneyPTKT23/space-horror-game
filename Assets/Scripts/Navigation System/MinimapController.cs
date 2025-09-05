@@ -29,6 +29,9 @@ namespace SLC
 
         public bool IsInteracting { get; set; }
 
+        // Store zoom input from InputReader (e.g. gamepad triggers or mouse scroll axes)
+        private Vector2 monitorZoomDelta;
+
         private void Start()
         {
             UpdateBounds();
@@ -41,6 +44,26 @@ namespace SLC
             Vector2 input = inputReader.NavigateInput;
             if (input != Vector2.zero)
                 ApplyPanInput(input.normalized);
+
+            monitorZoomDelta = inputReader.MonitorZoomDelta; // Assumes public getter from InputReader
+            float zoomDelta = monitorZoomDelta.y * zoomSpeed;
+
+            if (Mathf.Abs(zoomDelta) > 0.0001f)
+            {
+                ApplyZoom(zoomDelta);
+            }
+        }
+
+        private void ApplyZoom(float delta)
+        {
+            Vector2 newScale = currentScale + Vector2.one * delta;
+            newScale = Vector2.Max(Vector2.one * minZoom, Vector2.Min(Vector2.one * maxZoom, newScale));
+
+            currentScale = mapContent.localScale = newScale;
+
+            UpdateBounds();
+            AdjustCursorForZoom();
+            ClampMapPosition();
         }
 
         private void ApplyPanInput(Vector2 input)
@@ -84,14 +107,7 @@ namespace SLC
         public void OnScroll(PointerEventData eventData)
         {
             float delta = eventData.scrollDelta.y * zoomSpeed;
-            Vector2 newScale = currentScale + Vector2.one * delta;
-            newScale = Vector2.Max(Vector2.one * minZoom, Vector2.Min(Vector2.one * maxZoom, newScale));
-
-            currentScale = mapContent.localScale = newScale;
-
-            UpdateBounds();
-            AdjustCursorForZoom();
-            ClampMapPosition();
+            ApplyZoom(delta);
         }
 
         private void UpdateBounds()
